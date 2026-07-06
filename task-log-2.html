@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TASK.LOG">
+<meta name="theme-color" content="#0a0908">
+<title>TASK.LOG</title>
+<style>
+  :root{
+    --bg:#0a0908;
+    --panel:#141110;
+    --panel-2:#1c1815;
+    --line:#2a251f;
+    --text:#eee5d6;
+    --text-dim:#8f8676;
+    --amber:#ffb020;
+    --amber-soft:#3a2a12;
+    --signal:#5eead4;
+    --signal-soft:#123330;
+    --danger:#e5484d;
+    --danger-soft:#3a1414;
+    --radius:10px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans); overscroll-behavior-y:none;}
+  body{padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); min-height:100vh;}
+  .wrap{max-width:560px; margin:0 auto;}
+
+  header{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;}
+  .brand{font-family:var(--mono); font-size:13px; letter-spacing:.18em; color:var(--amber); font-weight:600;}
+  .brand span{color:var(--text-dim); font-weight:400;}
+  .date-badge{font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:.05em; text-transform:uppercase;}
+
+  .hero{display:flex; gap:8px; margin-bottom:16px;}
+  .hero-card{
+    flex:1; background: radial-gradient(120% 140% at 10% 0%, #1a140a 0%, var(--panel) 60%);
+    border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px;
+  }
+  .hero-label{font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--text-dim); text-transform:uppercase;}
+  .hero-val{font-family:var(--mono); font-size:28px; font-weight:600; color:var(--amber); line-height:1.3; text-shadow:0 0 18px rgba(255,176,32,.3);}
+  .hero-val small{font-size:12px; color:var(--text-dim); font-weight:400; margin-left:3px;}
+  .hero-card.signal .hero-val{color:var(--signal); text-shadow:0 0 18px rgba(94,234,212,.3);}
+
+  .tabs{display:flex; gap:6px; margin-bottom:12px;}
+  .tab{
+    flex:1; text-align:center; padding:9px 0; font-family:var(--mono); font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim);
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; cursor:pointer;
+  }
+  .tab.active{color:var(--amber); border-color:var(--amber-soft); background:var(--amber-soft);}
+
+  .task-list{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  .task{
+    display:flex; align-items:center; gap:12px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px; cursor:pointer; user-select:none; transition:border-color .15s, background .15s;
+  }
+  .task.done{border-color:rgba(94,234,212,.35); background:var(--signal-soft);}
+  .task.done .task-name{color:#c9e8e2; text-decoration:line-through; text-decoration-color:rgba(94,234,212,.5);}
+  .check{
+    width:22px; height:22px; min-width:22px; border-radius:6px; border:1.5px solid var(--text-dim);
+    display:flex; align-items:center; justify-content:center; font-size:13px; color:transparent;
+  }
+  .task.done .check{border-color:var(--signal); color:var(--signal); background:rgba(94,234,212,.1);}
+  .rec-badge{
+    width:22px; height:22px; min-width:22px; border-radius:6px; border:1.5px solid var(--amber-soft);
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--amber); font-family:var(--mono);
+  }
+  .task-body{flex:1; min-width:0;}
+  .task-name{font-size:14.5px; font-weight:500; color:var(--text);}
+  .task-meta{font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:2px; display:flex; gap:8px; align-items:center;}
+  .streak-flame{color:#ff8a3d;}
+  .task-pts{font-family:var(--mono); font-size:13px; color:var(--amber); font-weight:600; white-space:nowrap;}
+  .task.done .task-pts{color:var(--signal);}
+  .task-edit{
+    width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim); font-size:14px; flex:none;
+  }
+  .empty{text-align:center; padding:28px 12px; color:var(--text-dim); font-size:13px; border:1px dashed var(--line); border-radius:var(--radius);}
+  .add-btn{
+    width:100%; padding:12px; border-radius:var(--radius); border:1px dashed var(--line);
+    background:transparent; color:var(--text-dim); font-family:var(--mono); font-size:12px;
+    letter-spacing:.06em; text-transform:uppercase; cursor:pointer; margin-bottom:24px;
+  }
+  .add-btn:active{background:var(--panel-2);}
+
+  .section-title{font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--text-dim); text-transform:uppercase; margin:0 0 10px 2px;}
+
+  .chart-panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:16px;}
+  svg.chart{display:block; width:100%; height:160px;}
+  .chart-grid line{stroke:var(--line); stroke-width:1;}
+  .chart-axis-lbl{font-family:var(--mono); font-size:9px; fill:var(--text-dim);}
+  .legend{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .legend-item{
+    display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px;
+    color:var(--text-dim); border:1px solid var(--line); border-radius:999px; padding:5px 10px 5px 8px; cursor:pointer;
+  }
+  .legend-item.on{color:var(--text); border-color:var(--panel-2); background:var(--panel-2);}
+  .legend-dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .legend-item.total{cursor:default;}
+
+  .records{display:flex; flex-direction:column; gap:6px; margin-bottom:20px;}
+  .record-row{
+    display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px;
+  }
+  .record-name{flex:1; font-size:13px;}
+  .record-cur{font-family:var(--mono); font-size:11px; color:#ff8a3d;}
+  .record-best{font-family:var(--mono); font-size:11px; color:var(--text-dim); min-width:64px; text-align:right;}
+
+  footer{display:flex; gap:8px; margin-top:24px;}
+  .foot-btn{
+    flex:1; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--panel);
+    color:var(--text-dim); font-family:var(--mono); font-size:10.5px; letter-spacing:.05em;
+    text-transform:uppercase; text-align:center; cursor:pointer;
+  }
+  .foot-btn.danger{color:var(--danger);}
+  input[type=file]{display:none;}
+
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+  .overlay.open{display:flex;}
+  .modal{width:100%; max-width:560px; background:var(--panel); border:1px solid var(--line); border-radius:16px 16px 0 0; padding:20px 18px max(20px, env(safe-area-inset-bottom));}
+  .modal h3{margin:0 0 16px; font-size:15px; font-family:var(--mono); letter-spacing:.06em; color:var(--amber); text-transform:uppercase;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:11px; color:var(--text-dim); margin-bottom:6px; font-family:var(--mono); letter-spacing:.05em; text-transform:uppercase;}
+  .field input{width:100%; padding:11px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); font-size:14px; font-family:var(--sans);}
+  .field input:focus{outline:none; border-color:var(--amber);}
+  .freq-row{display:flex; gap:8px;}
+  .freq-opt{flex:1; text-align:center; padding:9px 0; border-radius:8px; border:1px solid var(--line); color:var(--text-dim); font-family:var(--mono); font-size:11px; text-transform:uppercase; cursor:pointer;}
+  .freq-opt.sel{border-color:var(--amber); color:var(--amber); background:var(--amber-soft);}
+  .modal-actions{display:flex; gap:8px; margin-top:6px;}
+  .btn{flex:1; padding:12px; border-radius:8px; border:none; font-family:var(--sans); font-size:14px; font-weight:600; cursor:pointer;}
+  .btn-primary{background:var(--amber); color:#1a1204;}
+  .btn-ghost{background:var(--panel-2); color:var(--text-dim);}
+  .btn-danger-ghost{background:var(--danger-soft); color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">TASK<span>.</span>LOG</div>
+    <div class="date-badge" id="todayLabel"></div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-card">
+      <div class="hero-label">Aujourd'hui</div>
+      <div class="hero-val" id="todayPoints">0<small>pts</small></div>
+    </div>
+    <div class="hero-card signal">
+      <div class="hero-label">Série active</div>
+      <div class="hero-val" id="streakVal">0<small>j</small></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-type="recurring">Récurrentes</div>
+    <div class="tab" data-type="oneoff">Ponctuelles</div>
+  </div>
+
+  <div class="task-list" id="taskList"></div>
+  <button class="add-btn" id="addTaskBtn">+ Ajouter</button>
+
+  <div class="section-title">Progression dans le temps</div>
+  <div class="chart-panel">
+    <svg class="chart" id="chartSvg" viewBox="0 0 320 160" preserveAspectRatio="none"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="section-title">Records (streaks)</div>
+  <div class="records" id="records"></div>
+
+  <footer>
+    <div class="foot-btn" id="exportBtn">Exporter</div>
+    <div class="foot-btn" id="importBtn">Importer</div>
+    <div class="foot-btn danger" id="resetBtn">Réinitialiser</div>
+  </footer>
+  <input type="file" id="importFile" accept="application/json">
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">Nouvelle activité</h3>
+    <div class="field">
+      <label>Nom</label>
+      <input id="fName" type="text" placeholder="ex. Session de skate" maxlength="60">
+    </div>
+    <div class="field">
+      <label>Points</label>
+      <input id="fPoints" type="number" min="1" max="999" value="10">
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <div class="freq-row">
+        <div class="freq-opt sel" data-v="recurring">Récurrente</div>
+        <div class="freq-opt" data-v="oneoff">Ponctuelle</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelBtn">Annuler</button>
+      <button class="btn btn-danger-ghost" id="deleteBtn" style="display:none;">Supprimer</button>
+      <button class="btn btn-primary" id="saveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORE_KEY = "tasklog_v2";
+  var PALETTE = ["#5eead4","#f472b6","#60a5fa","#a78bfa","#fbbf24","#34d399","#fb7185","#38bdf8","#facc15","#c084fc"];
+  var state = load();
+  var activeType = "recurring";
+  var editingId = null;
+  var editingType = null;
+  var visibleActivities = {};
+
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return {
+      recurring: [
+        {id:uid(), name:"Dessin", points:10},
+        {id:uid(), name:"Session de skate", points:15},
+        {id:uid(), name:"Renforcement musculaire", points:15},
+        {id:uid(), name:"Travail académique", points:20},
+        {id:uid(), name:"Bosser une langue", points:10},
+        {id:uid(), name:"Jouer aux jeux vidéo", points:5},
+        {id:uid(), name:"Lire un livre", points:10}
+      ],
+      oneoff: [],
+      logs: []
+    };
+  }
+  function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+  function pad(n){ return n<10 ? "0"+n : ""+n; }
+  function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function addDays(d,n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+
+  function logsForToday(activityId){
+    var today = dateKey(new Date());
+    return state.logs.filter(function(l){ return l.activityId===activityId && l.date===today; });
+  }
+  function logSession(activity){
+    state.logs.push({id:uid(), activityId:activity.id, date:dateKey(new Date()), points:activity.points});
+    save(); renderAll();
+  }
+  function undoSession(activity){
+    var today = dateKey(new Date());
+    for(var i=state.logs.length-1;i>=0;i--){
+      if(state.logs[i].activityId===activity.id && state.logs[i].date===today){
+        state.logs.splice(i,1); break;
+      }
+    }
+    save(); renderAll();
+  }
+
+  function toggleOneoff(task){
+    task.done = !task.done;
+    task.doneDate = task.done ? dateKey(new Date()) : null;
+    save(); renderAll();
+  }
+
+  function activityStreak(activityId){
+    var dates = {};
+    state.logs.forEach(function(l){ if(l.activityId===activityId) dates[l.date]=true; });
+    var keys = Object.keys(dates).sort();
+    var cur = 0, cursor = new Date();
+    while(dates[dateKey(cursor)]){ cur++; cursor = addDays(cursor,-1); }
+    var best=0, run=0, prev=null;
+    keys.forEach(function(k){
+      if(prev){
+        var diff = Math.round((new Date(k+"T00:00:00") - new Date(prev+"T00:00:00"))/86400000);
+        run = diff===1 ? run+1 : 1;
+      } else run=1;
+      best = Math.max(best,run);
+      prev = k;
+    });
+    return {current:cur, best:Math.max(best,cur)};
+  }
+
+  function globalStreak(){
+    var dates = {};
+    state.logs.forEach(function(l){ dates[l.date]=true; });
+    state.oneoff.forEach(function(t){ if(t.done && t.doneDate) dates[t.doneDate]=true; });
+    var cur=0, cursor=new Date();
+    while(dates[dateKey(cursor)]){ cur++; cursor=addDays(cursor,-1); }
+    return cur;
+  }
+
+  function pointsOnDate(dateStr, activityId){
+    var sum = 0;
+    state.logs.forEach(function(l){
+      if(l.date===dateStr && (!activityId || l.activityId===activityId)) sum += l.points;
+    });
+    if(!activityId){
+      state.oneoff.forEach(function(t){ if(t.done && t.doneDate===dateStr) sum += t.points; });
+    }
+    return sum;
+  }
+
+  var freqLabelType = {recurring:"Récurrente", oneoff:"Ponctuelle"};
+
+  function renderTabs(){
+    document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.dataset.type===activeType); });
+  }
+
+  function renderTaskList(){
+    var list = document.getElementById("taskList");
+    list.innerHTML = "";
+    if(activeType==="recurring"){
+      if(state.recurring.length===0){
+        list.innerHTML = '<div class="empty">Aucune activité récurrente pour l’instant.</div>';
+        return;
+      }
+      state.recurring.forEach(function(act){
+        var todayLogs = logsForToday(act.id);
+        var streak = activityStreak(act.id);
+        var row = document.createElement("div");
+        row.className = "task";
+        row.innerHTML =
+          '<div class="rec-badge">' + (todayLogs.length || "+") + '</div>' +
+          '<div class="task-body">' +
+            '<div class="task-name"></div>' +
+            '<div class="task-meta"><span class="streak-flame">' + (streak.current>0 ? "🔥 "+streak.current+"j" : "") + '</span></div>' +
+          '</div>' +
+          '<div class="task-pts">+' + act.points + '</div>' +
+          '<div class="task-edit">✎</div>';
+        row.querySelector(".task-name").textContent = act.name;
+        row.addEventListener("click", function(e){
+          if(e.target.closest(".task-edit")){ openModal(act,"recurring"); return; }
+          if(e.shiftKey || e.altKey){ undoSession(act); return; }
+          logSession(act);
+        });
+        row.title = "Clique pour logger une session (alt+clique pour annuler la dernière du jour)";
+        list.appendChild(row);
+      });
+    } else {
+      if(state.oneoff.length===0){
+        list.innerHTML = '<div class="empty">Aucune tâche ponctuelle pour l’instant.</div>';
+        return;
+      }
+      var sorted = state.oneoff.slice().sort(function(a,b){ return (a.done?1:0)-(b.done?1:0); });
+      sorted.forEach(function(task){
+        var row = document.createElement("div");
+        row.className = "task" + (task.done ? " done" : "");
+        row.innerHTML =
+          '<div class="check">' + (task.done ? "✓" : "") + '</div>' +
+          '<div class="task-body"><div class="task-name"></div></div>' +
+          '<div class="task-pts">+' + task.points + '</div>' +
+          '<div class="task-edit">✎</div>';
+        row.querySelector(".task-name").textContent = task.name;
+        row.addEventListener("click", function(e){
+          if(e.target.closest(".task-edit")){ openModal(task,"oneoff"); return; }
+          toggleOneoff(task);
+        });
+        list.appendChild(row);
+      });
+    }
+  }
+
+  function renderHero(){
+    document.getElementById("todayPoints").innerHTML = pointsOnDate(dateKey(new Date())) + "<small>pts</small>";
+    document.getElementById("streakVal").innerHTML = globalStreak() + "<small>j</small>";
+  }
+
+  function activityColor(idx){ return PALETTE[idx % PALETTE.length]; }
+
+  function renderLegend(){
+    var legend = document.getElementById("legend");
+    legend.innerHTML = "";
+    var totalItem = document.createElement("div");
+    totalItem.className = "legend-item total on";
+    totalItem.innerHTML = '<span class="legend-dot" style="background:var(--amber)"></span><span>Total</span>';
+    legend.appendChild(totalItem);
+    state.recurring.forEach(function(act, idx){
+      var item = document.createElement("div");
+      var on = !!visibleActivities[act.id];
+      item.className = "legend-item" + (on ? " on" : "");
+      item.innerHTML = '<span class="legend-dot" style="background:'+activityColor(idx)+'"></span><span></span>';
+      item.querySelector("span:last-child").textContent = act.name;
+      item.addEventListener("click", function(){
+        visibleActivities[act.id] = !visibleActivities[act.id];
+        renderLegend(); renderChart();
+      });
+      legend.appendChild(item);
+    });
+  }
+
+  function renderChart(){
+    var svg = document.getElementById("chartSvg");
+    var W=320, H=160, padL=8, padR=8, padT=10, padB=16;
+    var N = 30;
+    var days = [];
+    for(var i=N-1;i>=0;i--) days.push(dateKey(addDays(new Date(),-i)));
+
+    var series = [{id:null, color:"var(--amber)", strong:true}];
+    state.recurring.forEach(function(act, idx){
+      if(visibleActivities[act.id]) series.push({id:act.id, color:activityColor(idx), strong:false});
+    });
+
+    var allVals = [];
+    var seriesData = series.map(function(s){
+      var vals = days.map(function(d){ return pointsOnDate(d, s.id); });
+      allVals = allVals.concat(vals);
+      return {s:s, vals:vals};
+    });
+    var max = Math.max.apply(null, allVals.concat([10]));
+    var stepX = (W-padL-padR)/(days.length-1);
+
+    function toXY(vals){
+      return vals.map(function(v,i){
+        var x = padL + i*stepX;
+        var y = H - padB - (v/max)*(H-padT-padB);
+        return [x,y];
+      });
+    }
+
+    var svgParts = [];
+    svgParts.push('<g class="chart-grid">');
+    for(var g=0; g<=2; g++){
+      var gy = padT + g*((H-padT-padB)/2);
+      svgParts.push('<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+gy+'" y2="'+gy+'"/>');
+    }
+    svgParts.push('</g>');
+
+    seriesData.forEach(function(sd){
+      var pts = toXY(sd.vals);
+      var path = pts.map(function(p,i){ return (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" ");
+      var w = sd.s.strong ? 2.4 : 1.6;
+      var op = sd.s.strong ? 1 : 0.85;
+      svgParts.push('<path d="'+path+'" fill="none" stroke="'+sd.s.color+'" stroke-width="'+w+'" opacity="'+op+'" style="filter:drop-shadow(0 0 3px '+sd.s.color+'66)"/>');
+    });
+
+    svgParts.push('<text class="chart-axis-lbl" x="'+padL+'" y="'+(H-2)+'">'+days[0].slice(5)+'</text>');
+    svgParts.push('<text class="chart-axis-lbl" x="'+(W-padR-28)+'" y="'+(H-2)+'">'+days[days.length-1].slice(5)+'</text>');
+
+    svg.innerHTML = svgParts.join("");
+  }
+
+  function renderRecords(){
+    var container = document.getElementById("records");
+    if(state.recurring.length===0){
+      container.innerHTML = '<div class="empty">Ajoute une activité récurrente pour voir apparaître tes streaks.</div>';
+      return;
+    }
+    var rows = state.recurring.map(function(act){
+      var s = activityStreak(act.id);
+      return {name:act.name, cur:s.current, best:s.best};
+    }).sort(function(a,b){ return b.best-a.best; });
+    container.innerHTML = "";
+    rows.forEach(function(r){
+      var row = document.createElement("div");
+      row.className = "record-row";
+      row.innerHTML =
+        '<div class="record-name"></div>' +
+        '<div class="record-cur">'+ (r.cur>0 ? "🔥 "+r.cur+"j" : "—") +'</div>' +
+        '<div class="record-best">record '+r.best+'j</div>';
+      row.querySelector(".record-name").textContent = r.name;
+      container.appendChild(row);
+    });
+  }
+
+  function renderAll(){
+    renderTabs();
+    renderTaskList();
+    renderHero();
+    renderLegend();
+    renderChart();
+    renderRecords();
+  }
+
+  document.querySelectorAll(".tab").forEach(function(t){
+    t.addEventListener("click", function(){ activeType = t.dataset.type; renderAll(); });
+  });
+
+  var overlay = document.getElementById("overlay");
+  var selectedType = "recurring";
+  function openModal(item, type){
+    editingId = item ? item.id : null;
+    editingType = item ? type : null;
+    document.getElementById("modalTitle").textContent = item ? "Modifier" : "Nouvelle activité";
+    document.getElementById("fName").value = item ? item.name : "";
+    document.getElementById("fPoints").value = item ? item.points : 10;
+    selectedType = item ? type : activeType;
+    document.querySelectorAll(".freq-opt").forEach(function(o){ o.classList.toggle("sel", o.dataset.v===selectedType); });
+    document.getElementById("deleteBtn").style.display = item ? "block" : "none";
+    overlay.classList.add("open");
+  }
+  function closeModal(){ overlay.classList.remove("open"); }
+
+  document.getElementById("addTaskBtn").addEventListener("click", function(){ openModal(null,null); });
+  document.getElementById("cancelBtn").addEventListener("click", closeModal);
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) closeModal(); });
+
+  document.querySelectorAll(".freq-opt").forEach(function(o){
+    o.addEventListener("click", function(){
+      selectedType = o.dataset.v;
+      document.querySelectorAll(".freq-opt").forEach(function(x){ x.classList.toggle("sel", x===o); });
+    });
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", function(){
+    var name = document.getElementById("fName").value.trim();
+    var points = parseInt(document.getElementById("fPoints").value,10) || 1;
+    if(!name){ document.getElementById("fName").focus(); return; }
+    if(editingId){
+      var arr = editingType==="recurring" ? state.recurring : state.oneoff;
+      var it = arr.find(function(x){ return x.id===editingId; });
+      it.name = name; it.points = points;
+      if(selectedType !== editingType){
+        arr.splice(arr.indexOf(it),1);
+        var target = selectedType==="recurring" ? state.recurring : state.oneoff;
+        if(selectedType==="oneoff"){ it.done=false; it.doneDate=null; }
+        target.push(it);
+      }
+    } else {
+      var newItem = {id:uid(), name:name, points:points};
+      if(selectedType==="recurring") state.recurring.push(newItem);
+      else { newItem.done=false; newItem.doneDate=null; state.oneoff.push(newItem); }
+    }
+    save();
+    activeType = selectedType;
+    closeModal();
+    renderAll();
+  });
+
+  document.getElementById("deleteBtn").addEventListener("click", function(){
+    if(!editingId) return;
+    if(!confirm("Supprimer cette activité et son historique ?")) return;
+    if(editingType==="recurring"){
+      state.recurring = state.recurring.filter(function(x){ return x.id!==editingId; });
+      state.logs = state.logs.filter(function(l){ return l.activityId!==editingId; });
+      delete visibleActivities[editingId];
+    } else {
+      state.oneoff = state.oneoff.filter(function(x){ return x.id!==editingId; });
+    }
+    save();
+    closeModal();
+    renderAll();
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "tasklog-backup-"+dateKey(new Date())+".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById("importBtn").addEventListener("click", function(){ document.getElementById("importFile").click(); });
+  document.getElementById("importFile").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var data = JSON.parse(reader.result);
+        if(!data.recurring || !data.oneoff || !data.logs) throw new Error("format invalide");
+        state = data;
+        save(); renderAll();
+        alert("Import réussi.");
+      }catch(err){ alert("Fichier invalide, import annulé."); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    if(!confirm("Tout effacer (activités et progression) ? Cette action est irréversible.")) return;
+    localStorage.removeItem(STORE_KEY);
+    state = load();
+    renderAll();
+  });
+
+  document.getElementById("todayLabel").textContent = new Date().toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long"});
+  renderAll();
+})();
+</script>
+</body>
+</html>
