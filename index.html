@@ -78,6 +78,7 @@
   .task-meta{font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:2px; display:flex; gap:8px; align-items:center;}
   .streak-flame{color:#ff8a3d;}
   .task-pts{font-family:var(--mono); font-size:13px; color:var(--amber); font-weight:600; white-space:nowrap;}
+  .task-pts.neg{color:var(--danger);}
   .task.done .task-pts{color:var(--signal);}
   .task-edit{
     width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
@@ -195,7 +196,8 @@
     </div>
     <div class="field">
       <label>Points</label>
-      <input id="fPoints" type="number" min="1" max="999" value="10">
+      <input id="fPoints" type="number" min="-999" max="999" value="10">
+      <div style="font-size:11px; color:var(--text-dim); margin-top:5px;">Utilise une valeur négative pour une activité que tu veux décourager.</div>
     </div>
     <div class="field">
       <label>Type</label>
@@ -337,7 +339,7 @@
             '<div class="task-name"></div>' +
             '<div class="task-meta"><span class="streak-flame">' + (streak.current>0 ? "🔥 "+streak.current+"j" : "") + '</span></div>' +
           '</div>' +
-          '<div class="task-pts">+' + act.points + '</div>' +
+          '<div class="task-pts' + (act.points<0 ? ' neg' : '') + '">' + formatPts(act.points) + '</div>' +
           '<div class="task-edit">✎</div>';
         row.querySelector(".task-name").textContent = act.name;
         row.addEventListener("click", function(e){
@@ -360,7 +362,7 @@
         row.innerHTML =
           '<div class="check">' + (task.done ? "✓" : "") + '</div>' +
           '<div class="task-body"><div class="task-name"></div></div>' +
-          '<div class="task-pts">+' + task.points + '</div>' +
+          '<div class="task-pts' + (task.points<0 ? ' neg' : '') + '">' + formatPts(task.points) + '</div>' +
           '<div class="task-edit">✎</div>';
         row.querySelector(".task-name").textContent = task.name;
         row.addEventListener("click", function(e){
@@ -378,6 +380,7 @@
   }
 
   function activityColor(idx){ return PALETTE[idx % PALETTE.length]; }
+  function formatPts(n){ return (n>=0 ? "+" : "") + n; }
 
   function renderLegend(){
     var legend = document.getElementById("legend");
@@ -419,12 +422,14 @@
       return {s:s, vals:vals};
     });
     var max = Math.max.apply(null, allVals.concat([10]));
+    var min = Math.min.apply(null, allVals.concat([0]));
+    var range = (max - min) || 1;
     var stepX = (W-padL-padR)/(days.length-1);
 
     function toXY(vals){
       return vals.map(function(v,i){
         var x = padL + i*stepX;
-        var y = H - padB - (v/max)*(H-padT-padB);
+        var y = H - padB - ((v-min)/range)*(H-padT-padB);
         return [x,y];
       });
     }
@@ -436,6 +441,11 @@
       svgParts.push('<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+gy+'" y2="'+gy+'"/>');
     }
     svgParts.push('</g>');
+
+    if(min < 0){
+      var zeroY = H - padB - ((0-min)/range)*(H-padT-padB);
+      svgParts.push('<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+zeroY.toFixed(1)+'" y2="'+zeroY.toFixed(1)+'" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>');
+    }
 
     seriesData.forEach(function(sd){
       var pts = toXY(sd.vals);
