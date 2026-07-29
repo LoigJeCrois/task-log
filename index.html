@@ -6,22 +6,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TASK.LOG">
-<meta name="theme-color" content="#0d0c11">
+<meta name="theme-color" content="#0c0f0d">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>TASK.LOG</title>
 <style>
   :root{
-    /* Palette douce noir / blanc / violet */
-    --bg:#0d0c11;
-    --panel:#16151c;
-    --panel-2:#1f1d27;
-    --line:#2c2a35;
-    --text:#f2f0f6;
-    --text-dim:#948fa3;
-    --amber:#b39ddb;
-    --amber-soft:#2b2440;
-    --signal:#e8e3f5;
-    --signal-soft:#242231;
+    /* Palette douce noir / blanc / vert */
+    --bg:#0c0f0d;
+    --panel:#141a15;
+    --panel-2:#1c241d;
+    --line:#28322a;
+    --text:#eef2ef;
+    --text-dim:#8a9690;
+    --amber:#84b98a;
+    --amber-soft:#1c2a1f;
+    --signal:#cfe8cf;
+    --signal-soft:#1f2e22;
     --danger:#e08585;
     --danger-soft:#3a2323;
     --radius:10px;
@@ -138,6 +138,8 @@
   .field label{display:block; font-size:11px; color:var(--text-dim); margin-bottom:6px; font-family:var(--mono); letter-spacing:.05em; text-transform:uppercase;}
   .field input{width:100%; padding:11px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); font-size:14px; font-family:var(--sans);}
   .field input:focus{outline:none; border-color:var(--amber);}
+  .field select{width:100%; padding:11px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); font-size:14px; font-family:var(--sans);}
+  .field select:focus{outline:none; border-color:var(--amber);}
   .freq-row{display:flex; gap:8px;}
   .freq-opt{flex:1; text-align:center; padding:9px 0; border-radius:8px; border:1px solid var(--line); color:var(--text-dim); font-family:var(--mono); font-size:11px; text-transform:uppercase; cursor:pointer;}
   .freq-opt.sel{border-color:var(--amber); color:var(--amber); background:var(--amber-soft);}
@@ -203,6 +205,16 @@
       <label>Points</label>
       <input id="fPoints" type="number" min="-999" max="999" value="10">
       <div style="font-size:11px; color:var(--text-dim); margin-top:5px;">Utilise une valeur négative pour une activité que tu veux décourager.</div>
+    </div>
+    <div class="field">
+      <label>Catégorie</label>
+      <select id="fCategoryField">
+        <option value="Sport">Sport</option>
+        <option value="Art">Art</option>
+        <option value="Travail">Travail</option>
+        <option value="Loisir">Loisir</option>
+        <option value="Autres">Autres</option>
+      </select>
     </div>
     <div class="field">
       <label>Type</label>
@@ -511,6 +523,7 @@
     document.getElementById("modalTitle").textContent = item ? "Modifier" : "Nouvelle activité";
     document.getElementById("fName").value = item ? item.name : "";
     document.getElementById("fPoints").value = item ? item.points : 10;
+    document.getElementById("fCategoryField").value = item ? (item.category || "Autres") : "Autres";
     selectedType = item ? type : activeType;
     document.querySelectorAll(".freq-opt").forEach(function(o){ o.classList.toggle("sel", o.dataset.v===selectedType); });
     document.getElementById("deleteBtn").style.display = item ? "block" : "none";
@@ -532,11 +545,12 @@
   document.getElementById("saveBtn").addEventListener("click", function(){
     var name = document.getElementById("fName").value.trim();
     var points = parseInt(document.getElementById("fPoints").value,10) || 1;
+    var category = document.getElementById("fCategoryField").value;
     if(!name){ document.getElementById("fName").focus(); return; }
     if(editingId){
       var arr = editingType==="recurring" ? state.recurring : state.oneoff;
       var it = arr.find(function(x){ return x.id===editingId; });
-      it.name = name; it.points = points;
+      it.name = name; it.points = points; it.category = category;
       if(selectedType !== editingType){
         arr.splice(arr.indexOf(it),1);
         var target = selectedType==="recurring" ? state.recurring : state.oneoff;
@@ -544,7 +558,7 @@
         target.push(it);
       }
     } else {
-      var newItem = {id:uid(), name:name, points:points};
+      var newItem = {id:uid(), name:name, points:points, category:category};
       if(selectedType==="recurring") state.recurring.push(newItem);
       else { newItem.done=false; newItem.doneDate=null; state.oneoff.push(newItem); }
     }
