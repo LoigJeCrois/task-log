@@ -84,6 +84,11 @@
     width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
     color:var(--text-dim); font-size:14px; flex:none;
   }
+  .task-undo{
+    width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim); font-size:15px; flex:none; background:var(--panel-2);
+  }
+  .task-undo:active{background:var(--danger-soft); color:var(--danger);}
   .empty{text-align:center; padding:28px 12px; color:var(--text-dim); font-size:13px; border:1px dashed var(--line); border-radius:var(--radius);}
   .add-btn{
     width:100%; padding:12px; border-radius:var(--radius); border:1px dashed var(--line);
@@ -340,14 +345,15 @@
             '<div class="task-meta"><span class="streak-flame">' + (streak.current>0 ? "🔥 "+streak.current+"j" : "") + '</span></div>' +
           '</div>' +
           '<div class="task-pts' + (act.points<0 ? ' neg' : '') + '">' + formatPts(act.points) + '</div>' +
+          '<div class="task-undo"' + (todayLogs.length===0 ? ' style="visibility:hidden;"' : '') + '>↺</div>' +
           '<div class="task-edit">✎</div>';
         row.querySelector(".task-name").textContent = act.name;
         row.addEventListener("click", function(e){
           if(e.target.closest(".task-edit")){ openModal(act,"recurring"); return; }
-          if(e.shiftKey || e.altKey){ undoSession(act); return; }
+          if(e.target.closest(".task-undo")){ undoSession(act); return; }
           logSession(act);
         });
-        row.title = "Clique pour logger une session (alt+clique pour annuler la dernière du jour)";
+        row.title = "Clique pour logger une session · ↺ pour annuler la dernière du jour";
         list.appendChild(row);
       });
     } else {
