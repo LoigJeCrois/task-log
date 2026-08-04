@@ -618,32 +618,13 @@
         // Palette de couleurs cyclique pour les graphiques
         const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#e11d48', '#0ea5e9'];
 
-        // Données d'exemple initiales — modifiable librement, base générique pour n'importe qui
+        // État initial : vide, prêt à être personnalisé (identique à l'état après un reset)
         let state = {
-            categories: [
-                { id: 'artistique', name: 'Artistique' },
-                { id: 'sportive', name: 'Sportive' },
-                { id: 'travail', name: 'Travail' },
-                { id: 'loisir', name: 'Loisir' }
-            ],
-            activities: [
-                { id: 1, name: "Dessin / Peinture", category: "artistique", pointsPerDone: 10, streak: 4, type: "positive" },
-                { id: 2, name: "Course à pied", category: "sportive", pointsPerDone: 15, streak: 2, type: "positive" },
-                { id: 3, name: "Session de Code", category: "travail", pointsPerDone: 20, streak: 7, type: "positive" },
-                { id: 4, name: "Lecture", category: "loisir", pointsPerDone: 5, streak: 12, type: "positive" },
-                { id: 5, name: "Guitare", category: "artistique", pointsPerDone: 10, streak: 0, type: "positive" },
-                { id: 6, name: "Jeux vidéo", category: "loisir", pointsPerDone: 10, streak: 0, type: "negative" }
-            ],
+            categories: [],
+            activities: [],
             // Historique des points sur 7 jours [J-6, J-5, J-4, J-3, J-2, J-1, Aujourd'hui]
             labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-            history: {
-                1: [10, 0, 10, 10, 0, 10, 10],   // Dessin
-                2: [0, 15, 0, 15, 0, 0, 15],     // Course
-                3: [20, 20, 20, 20, 20, 20, 20], // Code
-                4: [5, 5, 5, 5, 5, 5, 5],        // Lecture
-                5: [0, 10, 0, 0, 0, 0, 0],       // Guitare
-                6: [20, 30, 10, 40, 20, 10, 20]  // Jeux vidéo (exemple d'activité "à limiter")
-            },
+            history: {},
             selectedCategory: 'toutes',
             chartInstance: null
         };
@@ -761,12 +742,12 @@
                     <div class="activity-info">
                         <span class="activity-name">${act.name}</span>
                         <span class="activity-category">${categoryName(act.category)}</span>
-                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? 'à limiter' : 'à encourager'}</span>
+                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? '⚠️ à limiter' : '⭐ à encourager'}</span>
                         ${todayPts > 0 ? `<span class="today-badge">✓ ${todayPts} pts ajoutés aujourd'hui</span>` : ''}
                     </div>
                     <div class="activity-actions">
                         <button class="minus-btn" title="Retirer les derniers points ajoutés aujourd'hui" onclick="removePoints(${act.id})" ${todayPts === 0 ? 'disabled' : ''}>−</button>
-                        <button class="add-pts-btn" style="background:${isNegative ? '#f59e0b' : 'var(--primary)'}" onclick="addPoints(${act.id})">${act.pointsPerDone} pts</button>
+                        <button class="add-pts-btn" style="background:${isNegative ? '#f59e0b' : 'var(--primary)'}" onclick="addPoints(${act.id})">+${act.pointsPerDone} pts</button>
                         <button class="delete-btn" title="Supprimer l'activité" onclick="deleteActivity(${act.id})">✕</button>
                     </div>
                 `;
