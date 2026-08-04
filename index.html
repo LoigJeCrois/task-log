@@ -108,6 +108,10 @@
             color: var(--primary);
         }
 
+        .card-value.net-positive { color: #16a34a; }
+        .card-value.net-negative { color: #dc2626; }
+        .card-value.net-zero { color: var(--text-muted); }
+
         /* Section Filtres & Activités */
         .section-header {
             display: flex;
@@ -217,6 +221,24 @@
             display: flex;
             align-items: center;
             gap: 4px;
+        }
+
+        .type-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .type-badge.type-positive {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .type-badge.type-negative {
+            background: #ffedd5;
+            color: #c2410c;
         }
 
         .activity-actions {
@@ -499,6 +521,10 @@
                 <div class="card-title">Moyenne points / jour</div>
                 <div class="card-value" id="pts-avg">0</div>
             </div>
+            <div class="card">
+                <div class="card-title">Score net aujourd'hui</div>
+                <div class="card-value" id="pts-net">0</div>
+            </div>
         </section>
 
         <!-- Liste des Activités avec Filtres -->
@@ -522,6 +548,12 @@
                 <div class="form-row">
                     <select id="new-activity-category" onchange="handleCategorySelectChange()"></select>
                     <input type="text" id="new-category-name" placeholder="Nom de la nouvelle catégorie" style="display:none;">
+                </div>
+                <div class="form-row">
+                    <select id="new-activity-type">
+                        <option value="positive">⭐ Activité à encourager</option>
+                        <option value="negative">⚠️ Activité à limiter</option>
+                    </select>
                 </div>
                 <div class="form-actions">
                     <button class="btn-secondary" onclick="toggleAddForm(false)">Annuler</button>
@@ -564,6 +596,7 @@
                 <select id="chart-mode" onchange="updateChartConfig()">
                     <option value="category">Par Catégorie</option>
                     <option value="stacked">Barres Superposées (Activités)</option>
+                    <option value="motivation">Score de motivation (net)</option>
                 </select>
             </div>
 
@@ -594,11 +627,12 @@
                 { id: 'loisir', name: 'Loisir' }
             ],
             activities: [
-                { id: 1, name: "Dessin / Peinture", category: "artistique", pointsPerDone: 10, streak: 4 },
-                { id: 2, name: "Course à pied", category: "sportive", pointsPerDone: 15, streak: 2 },
-                { id: 3, name: "Session de Code", category: "travail", pointsPerDone: 20, streak: 7 },
-                { id: 4, name: "Lecture", category: "loisir", pointsPerDone: 5, streak: 12 },
-                { id: 5, name: "Guitare", category: "artistique", pointsPerDone: 10, streak: 0 }
+                { id: 1, name: "Dessin / Peinture", category: "artistique", pointsPerDone: 10, streak: 4, type: "positive" },
+                { id: 2, name: "Course à pied", category: "sportive", pointsPerDone: 15, streak: 2, type: "positive" },
+                { id: 3, name: "Session de Code", category: "travail", pointsPerDone: 20, streak: 7, type: "positive" },
+                { id: 4, name: "Lecture", category: "loisir", pointsPerDone: 5, streak: 12, type: "positive" },
+                { id: 5, name: "Guitare", category: "artistique", pointsPerDone: 10, streak: 0, type: "positive" },
+                { id: 6, name: "Jeux vidéo", category: "loisir", pointsPerDone: 10, streak: 0, type: "negative" }
             ],
             // Historique des points sur 7 jours [J-6, J-5, J-4, J-3, J-2, J-1, Aujourd'hui]
             labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
@@ -607,7 +641,8 @@
                 2: [0, 15, 0, 15, 0, 0, 15],     // Course
                 3: [20, 20, 20, 20, 20, 20, 20], // Code
                 4: [5, 5, 5, 5, 5, 5, 5],        // Lecture
-                5: [0, 10, 0, 0, 0, 0, 0]        // Guitare
+                5: [0, 10, 0, 0, 0, 0, 0],       // Guitare
+                6: [20, 30, 10, 40, 20, 10, 20]  // Jeux vidéo (exemple d'activité "à limiter")
             },
             selectedCategory: 'toutes',
             chartInstance: null
@@ -650,17 +685,25 @@
         function updateSummary() {
             let ptsToday = 0;
             let totalPts7Days = 0;
+            let netToday = 0;
 
-            Object.keys(state.history).forEach(id => {
-                const arr = state.history[id];
-                ptsToday += arr[arr.length - 1]; // Dernier jour
+            state.activities.forEach(act => {
+                const arr = state.history[act.id] || [0, 0, 0, 0, 0, 0, 0];
+                const sign = act.type === 'negative' ? -1 : 1;
+                ptsToday += arr[6];
                 totalPts7Days += arr.reduce((a, b) => a + b, 0);
+                netToday += arr[6] * sign;
             });
 
             const avgDaily = Math.round(totalPts7Days / 7);
 
             document.getElementById('pts-today').innerText = ptsToday;
             document.getElementById('pts-avg').innerText = avgDaily;
+
+            const netEl = document.getElementById('pts-net');
+            netEl.innerText = (netToday > 0 ? '+' : '') + netToday;
+            netEl.classList.remove('net-positive', 'net-negative', 'net-zero');
+            netEl.classList.add(netToday > 0 ? 'net-positive' : netToday < 0 ? 'net-negative' : 'net-zero');
         }
 
         // ---------- Filtres de catégories ----------
@@ -710,6 +753,7 @@
 
             filtered.forEach(act => {
                 const todayPts = (state.history[act.id] && state.history[act.id][6]) || 0;
+                const isNegative = act.type === 'negative';
 
                 const item = document.createElement('div');
                 item.className = 'activity-item' + (todayPts > 0 ? ' done-today' : '');
@@ -717,11 +761,12 @@
                     <div class="activity-info">
                         <span class="activity-name">${act.name}</span>
                         <span class="activity-category">${categoryName(act.category)}</span>
+                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? 'à limiter' : 'à encourager'}</span>
                         ${todayPts > 0 ? `<span class="today-badge">✓ ${todayPts} pts ajoutés aujourd'hui</span>` : ''}
                     </div>
                     <div class="activity-actions">
                         <button class="minus-btn" title="Retirer les derniers points ajoutés aujourd'hui" onclick="removePoints(${act.id})" ${todayPts === 0 ? 'disabled' : ''}>−</button>
-                        <button class="add-pts-btn" onclick="addPoints(${act.id})">+${act.pointsPerDone} pts</button>
+                        <button class="add-pts-btn" style="background:${isNegative ? '#f59e0b' : 'var(--primary)'}" onclick="addPoints(${act.id})">${act.pointsPerDone} pts</button>
                         <button class="delete-btn" title="Supprimer l'activité" onclick="deleteActivity(${act.id})">✕</button>
                     </div>
                 `;
@@ -767,6 +812,7 @@
                 document.getElementById('new-activity-points').value = 10;
                 document.getElementById('new-category-name').value = '';
                 document.getElementById('new-category-name').style.display = 'none';
+                document.getElementById('new-activity-type').value = 'positive';
             }
         }
 
@@ -833,8 +879,10 @@
                 categoryId = addCategory(newCatName);
             }
 
+            const type = document.getElementById('new-activity-type').value;
+
             const id = nextActivityId();
-            state.activities.push({ id, name, category: categoryId, pointsPerDone: points, streak: 0 });
+            state.activities.push({ id, name, category: categoryId, pointsPerDone: points, streak: 0, type });
             state.history[id] = [0, 0, 0, 0, 0, 0, 0];
 
             toggleAddForm(false);
@@ -1000,9 +1048,71 @@
             });
         }
 
+        function computeNetSeries() {
+            const net = [0, 0, 0, 0, 0, 0, 0];
+            state.activities.forEach(act => {
+                const sign = act.type === 'negative' ? -1 : 1;
+                const arr = state.history[act.id] || [0, 0, 0, 0, 0, 0, 0];
+                arr.forEach((val, i) => net[i] += val * sign);
+            });
+            return net;
+        }
+
         function renderChart() {
             const ctx = document.getElementById('pointsChart').getContext('2d');
             const mode = document.getElementById('chart-mode').value;
+
+            if (state.chartInstance) {
+                state.chartInstance.destroy();
+            }
+
+            if (mode === 'motivation') {
+                // Courbe du score net (points "à encourager" - points "à limiter") : peut monter ou descendre
+                const netSeries = computeNetSeries();
+
+                state.chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: state.labels,
+                        datasets: [
+                            {
+                                label: 'Score net',
+                                data: netSeries,
+                                borderWidth: 3,
+                                tension: 0.3,
+                                fill: false,
+                                segment: {
+                                    borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0) ? '#dc2626' : '#16a34a'
+                                },
+                                pointBackgroundColor: netSeries.map(v => v < 0 ? '#dc2626' : v > 0 ? '#16a34a' : '#94a3b8'),
+                                pointBorderColor: '#ffffff',
+                                pointRadius: 5,
+                                pointHoverRadius: 7
+                            },
+                            {
+                                label: 'Zéro',
+                                data: [0, 0, 0, 0, 0, 0, 0],
+                                borderColor: '#cbd5e1',
+                                borderDash: [6, 6],
+                                borderWidth: 1,
+                                pointRadius: 0,
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: false }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+                return;
+            }
 
             let datasets = [];
 
@@ -1033,10 +1143,6 @@
                         data: state.history[act.id] || [0, 0, 0, 0, 0, 0, 0],
                         backgroundColor: CHART_COLORS[index % CHART_COLORS.length]
                     }));
-            }
-
-            if (state.chartInstance) {
-                state.chartInstance.destroy();
             }
 
             state.chartInstance = new Chart(ctx, {
