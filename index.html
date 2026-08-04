@@ -1,623 +1,555 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TASK.LOG">
-<meta name="theme-color" content="#0c0f0d">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>TASK.LOG</title>
-<style>
-  :root {
-    /* Palette douce sombre / bleu / violet */
-    --bg: #0c0d12;          /* Fond principal bleu-noir très profond */
-    --panel: #141622;       /* Cartes & conteneurs bleu nuit */
-    --panel-2: #1b1e30;     /* Éléments secondaires / survol */
-    --line: #272c42;        /* Bordures & séparateurs indigo sombre */
-    --text: #f0f2f8;        /* Texte principal blanc-bleuté très doux */
-    --text-dim: #8890ab;    /* Texte secondaire bleu gris lavande */
-    --amber: #a78bfa;       /* Accent principal violet lavande lumineux */
-    --amber-soft: #231d3d;  /* Fond d'accent violet sombre */
-    --signal: #93c5fd;      /* Succès / Highlight bleu ciel pastel */
-    --signal-soft: #1b283d; /* Fond de signal bleu profond */
-    --danger: #f472b6;      /* Erreur / Alerte rose magenta adouci */
-    --danger-soft: #381a28; /* Fond d'erreur violet/bordeaux sombre */
-    --radius: 10px;
-    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans); overscroll-behavior-y:none;}
-  body{padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); min-height:100vh;}
-  .wrap{max-width:560px; margin:0 auto;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi d'Activités & Points</title>
+    <!-- Chart.js CDN pour les histogrammes -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+        }
 
-  header{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;}
-  .brand{font-family:var(--mono); font-size:13px; letter-spacing:.18em; color:var(--amber); font-weight:600;}
-  .brand span{color:var(--text-dim); font-weight:400;}
-  .date-badge{font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:.05em; text-transform:uppercase;}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-  .hero{display:flex; gap:8px; margin-bottom:16px;}
-  .hero-card{
-    flex:1; background: radial-gradient(120% 140% at 10% 0%, #1a140a 0%, var(--panel) 60%);
-    border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px;
-  }
-  .hero-label{font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--text-dim); text-transform:uppercase;}
-  .hero-val{font-family:var(--mono); font-size:28px; font-weight:600; color:var(--amber); line-height:1.3; text-shadow:0 0 18px rgba(255,176,32,.3);}
-  .hero-val small{font-size:12px; color:var(--text-dim); font-weight:400; margin-left:3px;}
-  .hero-card.signal .hero-val{color:var(--signal); text-shadow:0 0 18px rgba(94,234,212,.3);}
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
-  .tabs{display:flex; gap:6px; margin-bottom:12px;}
-  .tab{
-    flex:1; text-align:center; padding:9px 0; font-family:var(--mono); font-size:11px;
-    letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim);
-    background:var(--panel); border:1px solid var(--line); border-radius:8px; cursor:pointer;
-  }
-  .tab.active{color:var(--amber); border-color:var(--amber-soft); background:var(--amber-soft);}
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
 
-  .task-list{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
-  .task{
-    display:flex; align-items:center; gap:12px;
-    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-    padding:12px; cursor:pointer; user-select:none; transition:border-color .15s, background .15s;
-  }
-  .task.done{border-color:rgba(94,234,212,.35); background:var(--signal-soft);}
-  .task.done .task-name{color:#c9e8e2; text-decoration:line-through; text-decoration-color:rgba(94,234,212,.5);}
-  .check{
-    width:22px; height:22px; min-width:22px; border-radius:6px; border:1.5px solid var(--text-dim);
-    display:flex; align-items:center; justify-content:center; font-size:13px; color:transparent;
-  }
-  .task.done .check{border-color:var(--signal); color:var(--signal); background:rgba(94,234,212,.1);}
-  .rec-badge{
-    width:22px; height:22px; min-width:22px; border-radius:6px; border:1.5px solid var(--amber-soft);
-    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--amber); font-family:var(--mono);
-  }
-  .task-body{flex:1; min-width:0;}
-  .task-name{font-size:14.5px; font-weight:500; color:var(--text);}
-  .task-meta{font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:2px; display:flex; gap:8px; align-items:center;}
-  .streak-flame{color:#ff8a3d;}
-  .task-pts{font-family:var(--mono); font-size:13px; color:var(--amber); font-weight:600; white-space:nowrap;}
-  .task-pts.neg{color:var(--danger);}
-  .task.done .task-pts{color:var(--signal);}
-  .task-edit{
-    width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
-    color:var(--text-dim); font-size:14px; flex:none;
-  }
-  .task-undo{
-    width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
-    color:var(--text-dim); font-size:15px; flex:none; background:var(--panel-2);
-  }
-  .task-undo:active{background:var(--danger-soft); color:var(--danger);}
-  .empty{text-align:center; padding:28px 12px; color:var(--text-dim); font-size:13px; border:1px dashed var(--line); border-radius:var(--radius);}
-  .add-btn{
-    width:100%; padding:12px; border-radius:var(--radius); border:1px dashed var(--line);
-    background:transparent; color:var(--text-dim); font-family:var(--mono); font-size:12px;
-    letter-spacing:.06em; text-transform:uppercase; cursor:pointer; margin-bottom:24px;
-  }
-  .add-btn:active{background:var(--panel-2);}
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
 
-  .section-title{font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--text-dim); text-transform:uppercase; margin:0 0 10px 2px;}
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
 
-  .chart-panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:16px;}
-  svg.chart{display:block; width:100%; height:160px;}
-  .chart-grid line{stroke:var(--line); stroke-width:1;}
-  .chart-axis-lbl{font-family:var(--mono); font-size:9px; fill:var(--text-dim);}
-  .legend{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
-  .legend-item{
-    display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px;
-    color:var(--text-dim); border:1px solid var(--line); border-radius:999px; padding:5px 10px 5px 8px; cursor:pointer;
-  }
-  .legend-item.on{color:var(--text); border-color:var(--panel-2); background:var(--panel-2);}
-  .legend-dot{width:8px; height:8px; border-radius:50%; flex:none;}
-  .legend-item.total{cursor:default;}
+        button.nav-btn {
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
 
-  .records{display:flex; flex-direction:column; gap:6px; margin-bottom:20px;}
-  .record-row{
-    display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line);
-    border-radius:8px; padding:10px 12px;
-  }
-  .record-name{flex:1; font-size:13px;}
-  .record-cur{font-family:var(--mono); font-size:11px; color:#ff8a3d;}
-  .record-best{font-family:var(--mono); font-size:11px; color:var(--text-dim); min-width:64px; text-align:right;}
+        button.nav-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
 
-  footer{display:flex; gap:8px; margin-top:24px;}
-  .foot-btn{
-    flex:1; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--panel);
-    color:var(--text-dim); font-family:var(--mono); font-size:10.5px; letter-spacing:.05em;
-    text-transform:uppercase; text-align:center; cursor:pointer;
-  }
-  .foot-btn.danger{color:var(--danger);}
-  input[type=file]{display:none;}
+        .page {
+            display: none;
+        }
 
-  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-end; justify-content:center; z-index:50;}
-  .overlay.open{display:flex;}
-  .modal{width:100%; max-width:560px; background:var(--panel); border:1px solid var(--line); border-radius:16px 16px 0 0; padding:20px 18px max(20px, env(safe-area-inset-bottom));}
-  .modal h3{margin:0 0 16px; font-size:15px; font-family:var(--mono); letter-spacing:.06em; color:var(--amber); text-transform:uppercase;}
-  .field{margin-bottom:14px;}
-  .field label{display:block; font-size:11px; color:var(--text-dim); margin-bottom:6px; font-family:var(--mono); letter-spacing:.05em; text-transform:uppercase;}
-  .field input{width:100%; padding:11px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); font-size:14px; font-family:var(--sans);}
-  .field input:focus{outline:none; border-color:var(--amber);}
-  .field select{width:100%; padding:11px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; color:var(--text); font-size:14px; font-family:var(--sans);}
-  .field select:focus{outline:none; border-color:var(--amber);}
-  .freq-row{display:flex; gap:8px;}
-  .freq-opt{flex:1; text-align:center; padding:9px 0; border-radius:8px; border:1px solid var(--line); color:var(--text-dim); font-family:var(--mono); font-size:11px; text-transform:uppercase; cursor:pointer;}
-  .freq-opt.sel{border-color:var(--amber); color:var(--amber); background:var(--amber-soft);}
-  .modal-actions{display:flex; gap:8px; margin-top:6px;}
-  .btn{flex:1; padding:12px; border-radius:8px; border:none; font-family:var(--sans); font-size:14px; font-weight:600; cursor:pointer;}
-  .btn-primary{background:var(--amber); color:#1a1204;}
-  .btn-ghost{background:var(--panel-2); color:var(--text-dim);}
-  .btn-danger-ghost{background:var(--danger-soft); color:var(--danger);}
-</style>
+        .page.active {
+            display: block;
+        }
+
+        /* Cartes de résumé */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .card-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Section Filtres & Activités */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .filter-btn.active {
+            background: var(--text);
+            color: white;
+            border-color: var(--text);
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .activity-item {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .activity-name {
+            font-weight: 600;
+        }
+
+        .activity-category {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: #e0e7ff;
+            color: #3730a3;
+            width: fit-content;
+        }
+
+        .activity-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .add-pts-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Table/Séries en cours */
+        .streaks-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .streak-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .streak-item:last-child {
+            border-bottom: none;
+        }
+
+        .streak-badge {
+            font-weight: 700;
+            color: #d97706;
+        }
+
+        /* Contrôles du Graphique */
+        .chart-controls {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            position: relative;
+            min-height: 350px;
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
 
-  <header>
-    <div class="brand">TASK<span>.</span>LOG</div>
-    <div class="date-badge" id="todayLabel"></div>
-  </header>
+    <header>
+        <h1>Tableau de Bord</h1>
+        <div class="nav-buttons">
+            <button class="nav-btn active" onclick="switchPage('home')">Accueil</button>
+            <button class="nav-btn" onclick="switchPage('analytics')">Graphiques</button>
+        </div>
+    </header>
 
-  <div class="hero">
-    <div class="hero-card">
-      <div class="hero-label">Aujourd'hui</div>
-      <div class="hero-val" id="todayPoints">0<small>pts</small></div>
-    </div>
-    <div class="hero-card signal">
-      <div class="hero-label">Série active</div>
-      <div class="hero-val" id="streakVal">0<small>j</small></div>
-    </div>
-  </div>
+    <!-- PAGE ACCUEIL -->
+    <main id="page-home" class="page active">
+        <!-- Résumé des points -->
+        <section class="summary-grid">
+            <div class="card">
+                <div class="card-title">Points aujourd'hui</div>
+                <div class="card-value" id="pts-today">0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Moyenne points / jour</div>
+                <div class="card-value" id="pts-avg">0</div>
+            </div>
+        </section>
 
-  <div class="tabs">
-    <div class="tab active" data-type="recurring">Récurrentes</div>
-    <div class="tab" data-type="oneoff">Ponctuelles</div>
-  </div>
+        <!-- Liste des Activités avec Filtres -->
+        <section>
+            <div class="section-header">
+                <h2>Activités</h2>
+                <div class="category-filter">
+                    <button class="filter-btn active" onclick="filterCategory('toutes')">Toutes</button>
+                    <button class="filter-btn" onclick="filterCategory('artistique')">Artistique</button>
+                    <button class="filter-btn" onclick="filterCategory('sportive')">Sportive</button>
+                    <button class="filter-btn" onclick="filterCategory('travail')">Travail</button>
+                    <button class="filter-btn" onclick="filterCategory('loisir')">Loisir</button>
+                </div>
+            </div>
 
-  <div class="task-list" id="taskList"></div>
-  <button class="add-btn" id="addTaskBtn">+ Ajouter</button>
+            <div class="activity-list" id="activity-list">
+                <!-- Généré dynamiquement -->
+            </div>
+        </section>
 
-  <div class="section-title">Progression dans le temps</div>
-  <div class="chart-panel">
-    <svg class="chart" id="chartSvg" viewBox="0 0 320 160" preserveAspectRatio="none"></svg>
-    <div class="legend" id="legend"></div>
-  </div>
+        <!-- Séries en cours -->
+        <section class="streaks-section">
+            <h2 style="margin-bottom: 12px; font-size: 1.1rem;">Séries en cours 🔥</h2>
+            <div id="streaks-list">
+                <!-- Généré dynamiquement -->
+            </div>
+        </section>
+    </main>
 
-  <div class="section-title">Records (streaks)</div>
-  <div class="records" id="records"></div>
+    <!-- PAGE GRAPHIQUES -->
+    <main id="page-analytics" class="page">
+        <div class="chart-controls">
+            <div class="control-group">
+                <label for="chart-mode">Mode de vue :</label>
+                <select id="chart-mode" onchange="updateChartConfig()">
+                    <option value="category">Par Catégorie</option>
+                    <option value="stacked">Barres Superposées (Activités)</option>
+                </select>
+            </div>
 
-  <footer>
-    <div class="foot-btn" id="exportBtn">Exporter</div>
-    <div class="foot-btn" id="importBtn">Importer</div>
-    <div class="foot-btn danger" id="resetBtn">Réinitialiser</div>
-  </footer>
-  <input type="file" id="importFile" accept="application/json">
-</div>
+            <!-- Filtre spécifique par catégorie en mode superposition -->
+            <div class="control-group" id="activity-selection-group" style="display: none;">
+                <label>Sélectionner les activités à superposer :</label>
+                <div class="checkbox-group" id="activity-checkboxes">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </div>
+        </div>
 
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <h3 id="modalTitle">Nouvelle activité</h3>
-    <div class="field">
-      <label>Nom</label>
-      <input id="fName" type="text" placeholder="ex. Session de skate" maxlength="60">
-    </div>
-    <div class="field">
-      <label>Points</label>
-      <input id="fPoints" type="number" min="-999" max="999" value="10">
-      <div style="font-size:11px; color:var(--text-dim); margin-top:5px;">Utilise une valeur négative pour une activité que tu veux décourager.</div>
-    </div>
-    <div class="field">
-      <label>Catégorie</label>
-      <select id="fCategoryField">
-        <option value="Sport">Sport</option>
-        <option value="Art">Art</option>
-        <option value="Travail">Travail</option>
-        <option value="Loisir">Loisir</option>
-        <option value="Autres">Autres</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Type</label>
-      <div class="freq-row">
-        <div class="freq-opt sel" data-v="recurring">Récurrente</div>
-        <div class="freq-opt" data-v="oneoff">Ponctuelle</div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelBtn">Annuler</button>
-      <button class="btn btn-danger-ghost" id="deleteBtn" style="display:none;">Supprimer</button>
-      <button class="btn btn-primary" id="saveBtn">Enregistrer</button>
-    </div>
-  </div>
-</div>
+        <div class="chart-container">
+            <canvas id="pointsChart"></canvas>
+        </div>
+    </main>
 
-<script>
-(function(){
-  "use strict";
-  var STORE_KEY = "tasklog_v2";
-  var PALETTE = ["#b39ddb","#e8e3f5","#8877c9","#d8bfd8","#7c6fa3","#c3b1e1","#9f8fc9","#6a5c99","#bda7e8","#a695c9"];
-  var state = load();
-  var activeType = "recurring";
-  var editingId = null;
-  var editingType = null;
-  var visibleActivities = {};
+    <script>
+        // Données d'exemple initiales
+        let state = {
+            activities: [
+                { id: 1, name: "Dessin / Peinture", category: "artistique", pointsPerDone: 10, streak: 4 },
+                { id: 2, name: "Course à pied", category: "sportive", pointsPerDone: 15, streak: 2 },
+                { id: 3, name: "Session de Code", category: "travail", pointsPerDone: 20, streak: 7 },
+                { id: 4, name: "Lecture", category: "loisir", pointsPerDone: 5, streak: 12 },
+                { id: 5, name: "Guitare", category: "artistique", pointsPerDone: 10, streak: 0 }
+            ],
+            // Historique des points sur 7 jours [J-6, J-5, J-4, J-3, J-2, J-1, Aujourd'hui]
+            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+            history: {
+                1: [10, 0, 10, 10, 0, 10, 10],   // Dessin
+                2: [0, 15, 0, 15, 0, 0, 15],     // Course
+                3: [20, 20, 20, 20, 20, 20, 20], // Code
+                4: [5, 5, 5, 5, 5, 5, 5],        // Lecture
+                5: [0, 10, 0, 0, 0, 0, 0]        // Guitare
+            },
+            selectedCategory: 'toutes',
+            chartInstance: null
+        };
 
-  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+        // Navigation
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            event.target.classList.add('active');
 
-  function load(){
-    try{
-      var raw = localStorage.getItem(STORE_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return {
-      recurring: [
-        {id:uid(), name:"Dessin", points:10},
-        {id:uid(), name:"Session de skate", points:15},
-        {id:uid(), name:"Renforcement musculaire", points:15},
-        {id:uid(), name:"Travail académique", points:20},
-        {id:uid(), name:"Bosser une langue", points:10},
-        {id:uid(), name:"Jouer aux jeux vidéo", points:5},
-        {id:uid(), name:"Lire un livre", points:10}
-      ],
-      oneoff: [],
-      logs: []
-    };
-  }
-  function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+            if (pageId === 'analytics') {
+                renderChart();
+            }
+        }
 
-  function pad(n){ return n<10 ? "0"+n : ""+n; }
-  function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
-  function addDays(d,n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+        // Calculs des stats principales
+        function updateSummary() {
+            let ptsToday = 0;
+            let totalPts7Days = 0;
 
-  function logsForToday(activityId){
-    var today = dateKey(new Date());
-    return state.logs.filter(function(l){ return l.activityId===activityId && l.date===today; });
-  }
-  function logSession(activity){
-    state.logs.push({id:uid(), activityId:activity.id, date:dateKey(new Date()), points:activity.points});
-    save(); renderAll();
-  }
-  function undoSession(activity){
-    var today = dateKey(new Date());
-    for(var i=state.logs.length-1;i>=0;i--){
-      if(state.logs[i].activityId===activity.id && state.logs[i].date===today){
-        state.logs.splice(i,1); break;
-      }
-    }
-    save(); renderAll();
-  }
+            Object.keys(state.history).forEach(id => {
+                const arr = state.history[id];
+                ptsToday += arr[arr.length - 1]; // Dernier jour
+                totalPts7Days += arr.reduce((a, b) => a + b, 0);
+            });
 
-  function toggleOneoff(task){
-    task.done = !task.done;
-    task.doneDate = task.done ? dateKey(new Date()) : null;
-    save(); renderAll();
-  }
+            const avgDaily = Math.round(totalPts7Days / 7);
 
-  function activityStreak(activityId){
-    var dates = {};
-    state.logs.forEach(function(l){ if(l.activityId===activityId) dates[l.date]=true; });
-    var keys = Object.keys(dates).sort();
-    var cur = 0, cursor = new Date();
-    while(dates[dateKey(cursor)]){ cur++; cursor = addDays(cursor,-1); }
-    var best=0, run=0, prev=null;
-    keys.forEach(function(k){
-      if(prev){
-        var diff = Math.round((new Date(k+"T00:00:00") - new Date(prev+"T00:00:00"))/86400000);
-        run = diff===1 ? run+1 : 1;
-      } else run=1;
-      best = Math.max(best,run);
-      prev = k;
-    });
-    return {current:cur, best:Math.max(best,cur)};
-  }
+            document.getElementById('pts-today').innerText = ptsToday;
+            document.getElementById('pts-avg').innerText = avgDaily;
+        }
 
-  function globalStreak(){
-    var dates = {};
-    state.logs.forEach(function(l){ dates[l.date]=true; });
-    state.oneoff.forEach(function(t){ if(t.done && t.doneDate) dates[t.doneDate]=true; });
-    var cur=0, cursor=new Date();
-    while(dates[dateKey(cursor)]){ cur++; cursor=addDays(cursor,-1); }
-    return cur;
-  }
+        // Filtrage & Rendu des Activités
+        function filterCategory(cat) {
+            state.selectedCategory = cat;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toLowerCase() === cat || (cat === 'toutes' && btn.innerText === 'Toutes'));
+            });
+            renderActivities();
+        }
 
-  function pointsOnDate(dateStr, activityId){
-    var sum = 0;
-    state.logs.forEach(function(l){
-      if(l.date===dateStr && (!activityId || l.activityId===activityId)) sum += l.points;
-    });
-    if(!activityId){
-      state.oneoff.forEach(function(t){ if(t.done && t.doneDate===dateStr) sum += t.points; });
-    }
-    return sum;
-  }
+        function renderActivities() {
+            const listEl = document.getElementById('activity-list');
+            listEl.innerHTML = '';
 
-  var freqLabelType = {recurring:"Récurrente", oneoff:"Ponctuelle"};
+            const filtered = state.selectedCategory === 'toutes' 
+                ? state.activities 
+                : state.activities.filter(a => a.category === state.selectedCategory);
 
-  function renderTabs(){
-    document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.dataset.type===activeType); });
-  }
+            filtered.forEach(act => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                item.innerHTML = `
+                    <div class="activity-info">
+                        <span class="activity-name">${act.name}</span>
+                        <span class="activity-category">${act.category}</span>
+                    </div>
+                    <div class="activity-actions">
+                        <button class="add-pts-btn" onclick="addPoints(${act.id})">+${act.pointsPerDone} pts</button>
+                    </div>
+                `;
+                listEl.appendChild(item);
+            });
+        }
 
-  function renderTaskList(){
-    var list = document.getElementById("taskList");
-    list.innerHTML = "";
-    if(activeType==="recurring"){
-      if(state.recurring.length===0){
-        list.innerHTML = '<div class="empty">Aucune activité récurrente pour l’instant.</div>';
-        return;
-      }
-      state.recurring.forEach(function(act){
-        var todayLogs = logsForToday(act.id);
-        var streak = activityStreak(act.id);
-        var row = document.createElement("div");
-        row.className = "task";
-        row.innerHTML =
-          '<div class="rec-badge">' + (todayLogs.length || "+") + '</div>' +
-          '<div class="task-body">' +
-            '<div class="task-name"></div>' +
-            '<div class="task-meta"><span class="streak-flame">' + (streak.current>0 ? "🔥 "+streak.current+"j" : "") + '</span></div>' +
-          '</div>' +
-          '<div class="task-pts' + (act.points<0 ? ' neg' : '') + '">' + formatPts(act.points) + '</div>' +
-          '<div class="task-undo"' + (todayLogs.length===0 ? ' style="visibility:hidden;"' : '') + '>↺</div>' +
-          '<div class="task-edit">✎</div>';
-        row.querySelector(".task-name").textContent = act.name;
-        row.addEventListener("click", function(e){
-          if(e.target.closest(".task-edit")){ openModal(act,"recurring"); return; }
-          if(e.target.closest(".task-undo")){ undoSession(act); return; }
-          logSession(act);
-        });
-        row.title = "Clique pour logger une session · ↺ pour annuler la dernière du jour";
-        list.appendChild(row);
-      });
-    } else {
-      if(state.oneoff.length===0){
-        list.innerHTML = '<div class="empty">Aucune tâche ponctuelle pour l’instant.</div>';
-        return;
-      }
-      var sorted = state.oneoff.slice().sort(function(a,b){ return (a.done?1:0)-(b.done?1:0); });
-      sorted.forEach(function(task){
-        var row = document.createElement("div");
-        row.className = "task" + (task.done ? " done" : "");
-        row.innerHTML =
-          '<div class="check">' + (task.done ? "✓" : "") + '</div>' +
-          '<div class="task-body"><div class="task-name"></div></div>' +
-          '<div class="task-pts' + (task.points<0 ? ' neg' : '') + '">' + formatPts(task.points) + '</div>' +
-          '<div class="task-edit">✎</div>';
-        row.querySelector(".task-name").textContent = task.name;
-        row.addEventListener("click", function(e){
-          if(e.target.closest(".task-edit")){ openModal(task,"oneoff"); return; }
-          toggleOneoff(task);
-        });
-        list.appendChild(row);
-      });
-    }
-  }
+        // Rendu des séries en cours
+        function renderStreaks() {
+            const streaksEl = document.getElementById('streaks-list');
+            streaksEl.innerHTML = '';
 
-  function renderHero(){
-    document.getElementById("todayPoints").innerHTML = pointsOnDate(dateKey(new Date())) + "<small>pts</small>";
-    document.getElementById("streakVal").innerHTML = globalStreak() + "<small>j</small>";
-  }
+            state.activities.forEach(act => {
+                if (act.streak > 0) {
+                    const item = document.createElement('div');
+                    item.className = 'streak-item';
+                    item.innerHTML = `
+                        <span>${act.name}</span>
+                        <span class="streak-badge">${act.streak} jours consécutifs</span>
+                    `;
+                    streaksEl.appendChild(item);
+                }
+            });
+        }
 
-  function activityColor(idx){ return PALETTE[idx % PALETTE.length]; }
-  function formatPts(n){ return (n>=0 ? "+" : "") + n; }
+        // Validation d'une activité
+        function addPoints(activityId) {
+            const act = state.activities.find(a => a.id === activityId);
+            if (act) {
+                // Ajouter les points au jour actuel (indice 6)
+                state.history[activityId][6] += act.pointsPerDone;
+                updateSummary();
+                if (state.chartInstance) renderChart();
+            }
+        }
 
-  function renderLegend(){
-    var legend = document.getElementById("legend");
-    legend.innerHTML = "";
-    var totalItem = document.createElement("div");
-    totalItem.className = "legend-item total on";
-    totalItem.innerHTML = '<span class="legend-dot" style="background:var(--amber)"></span><span>Total</span>';
-    legend.appendChild(totalItem);
-    state.recurring.forEach(function(act, idx){
-      var item = document.createElement("div");
-      var on = !!visibleActivities[act.id];
-      item.className = "legend-item" + (on ? " on" : "");
-      item.innerHTML = '<span class="legend-dot" style="background:'+activityColor(idx)+'"></span><span></span>';
-      item.querySelector("span:last-child").textContent = act.name;
-      item.addEventListener("click", function(){
-        visibleActivities[act.id] = !visibleActivities[act.id];
-        renderLegend(); renderChart();
-      });
-      legend.appendChild(item);
-    });
-  }
+        // Gestion de la logique des Graphiques (Chart.js)
+        function updateChartConfig() {
+            const mode = document.getElementById('chart-mode').value;
+            const selectionGroup = document.getElementById('activity-selection-group');
+            selectionGroup.style.display = (mode === 'stacked') ? 'flex' : 'none';
 
-  function renderChart(){
-    var svg = document.getElementById("chartSvg");
-    var W=320, H=160, padL=8, padR=8, padT=10, padB=16;
-    var N = 30;
-    var days = [];
-    for(var i=N-1;i>=0;i--) days.push(dateKey(addDays(new Date(),-i)));
+            if (mode === 'stacked' && document.getElementById('activity-checkboxes').children.length === 0) {
+                renderCheckboxes();
+            }
+            renderChart();
+        }
 
-    var series = [{id:null, color:"var(--amber)", strong:true}];
-    state.recurring.forEach(function(act, idx){
-      if(visibleActivities[act.id]) series.push({id:act.id, color:activityColor(idx), strong:false});
-    });
+        function renderCheckboxes() {
+            const boxContainer = document.getElementById('activity-checkboxes');
+            boxContainer.innerHTML = '';
 
-    var allVals = [];
-    var seriesData = series.map(function(s){
-      var vals = days.map(function(d){ return pointsOnDate(d, s.id); });
-      allVals = allVals.concat(vals);
-      return {s:s, vals:vals};
-    });
-    var max = Math.max.apply(null, allVals.concat([10]));
-    var min = Math.min.apply(null, allVals.concat([0]));
-    var range = (max - min) || 1;
-    var stepX = (W-padL-padR)/(days.length-1);
+            state.activities.forEach(act => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-item';
+                label.innerHTML = `
+                    <input type="checkbox" value="${act.id}" checked onchange="renderChart()">
+                    ${act.name}
+                `;
+                boxContainer.appendChild(label);
+            });
+        }
 
-    function toXY(vals){
-      return vals.map(function(v,i){
-        var x = padL + i*stepX;
-        var y = H - padB - ((v-min)/range)*(H-padT-padB);
-        return [x,y];
-      });
-    }
+        function renderChart() {
+            const ctx = document.getElementById('pointsChart').getContext('2d');
+            const mode = document.getElementById('chart-mode').value;
 
-    var svgParts = [];
-    svgParts.push('<g class="chart-grid">');
-    for(var g=0; g<=2; g++){
-      var gy = padT + g*((H-padT-padB)/2);
-      svgParts.push('<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+gy+'" y2="'+gy+'"/>');
-    }
-    svgParts.push('</g>');
+            const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
 
-    if(min < 0){
-      var zeroY = H - padB - ((0-min)/range)*(H-padT-padB);
-      svgParts.push('<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+zeroY.toFixed(1)+'" y2="'+zeroY.toFixed(1)+'" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>');
-    }
+            let datasets = [];
 
-    seriesData.forEach(function(sd){
-      var pts = toXY(sd.vals);
-      var path = pts.map(function(p,i){ return (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" ");
-      var w = sd.s.strong ? 2.4 : 1.6;
-      var op = sd.s.strong ? 1 : 0.85;
-      svgParts.push('<path d="'+path+'" fill="none" stroke="'+sd.s.color+'" stroke-width="'+w+'" opacity="'+op+'" style="filter:drop-shadow(0 0 3px '+sd.s.color+'66)"/>');
-    });
+            if (mode === 'category') {
+                // Regroupement des points par catégorie
+                const categories = ['artistique', 'sportive', 'travail', 'loisir'];
+                
+                datasets = categories.map((cat, index) => {
+                    const catData = [0, 0, 0, 0, 0, 0, 0];
+                    state.activities.filter(a => a.category === cat).forEach(act => {
+                        const actHistory = state.history[act.id];
+                        actHistory.forEach((val, i) => catData[i] += val);
+                    });
 
-    svgParts.push('<text class="chart-axis-lbl" x="'+padL+'" y="'+(H-2)+'">'+days[0].slice(5)+'</text>');
-    svgParts.push('<text class="chart-axis-lbl" x="'+(W-padR-28)+'" y="'+(H-2)+'">'+days[days.length-1].slice(5)+'</text>');
+                    return {
+                        label: cat.charAt(0).toUpperCase() + cat.slice(1),
+                        data: catData,
+                        backgroundColor: colors[index % colors.length]
+                    };
+                });
+            } else {
+                // Mode Superposition / Empilé par Activité
+                const selectedIds = Array.from(document.querySelectorAll('#activity-checkboxes input:checked'))
+                                         .map(cb => parseInt(cb.value));
 
-    svg.innerHTML = svgParts.join("");
-  }
+                datasets = state.activities
+                    .filter(act => selectedIds.includes(act.id))
+                    .map((act, index) => ({
+                        label: act.name,
+                        data: state.history[act.id],
+                        backgroundColor: colors[index % colors.length]
+                    }));
+            }
 
-  function renderRecords(){
-    var container = document.getElementById("records");
-    if(state.recurring.length===0){
-      container.innerHTML = '<div class="empty">Ajoute une activité récurrente pour voir apparaître tes streaks.</div>';
-      return;
-    }
-    var rows = state.recurring.map(function(act){
-      var s = activityStreak(act.id);
-      return {name:act.name, cur:s.current, best:s.best};
-    }).sort(function(a,b){ return b.best-a.best; });
-    container.innerHTML = "";
-    rows.forEach(function(r){
-      var row = document.createElement("div");
-      row.className = "record-row";
-      row.innerHTML =
-        '<div class="record-name"></div>' +
-        '<div class="record-cur">'+ (r.cur>0 ? "🔥 "+r.cur+"j" : "—") +'</div>' +
-        '<div class="record-best">record '+r.best+'j</div>';
-      row.querySelector(".record-name").textContent = r.name;
-      container.appendChild(row);
-    });
-  }
+            if (state.chartInstance) {
+                state.chartInstance.destroy();
+            }
 
-  function renderAll(){
-    renderTabs();
-    renderTaskList();
-    renderHero();
-    renderLegend();
-    renderChart();
-    renderRecords();
-  }
+            state.chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
 
-  document.querySelectorAll(".tab").forEach(function(t){
-    t.addEventListener("click", function(){ activeType = t.dataset.type; renderAll(); });
-  });
-
-  var overlay = document.getElementById("overlay");
-  var selectedType = "recurring";
-  function openModal(item, type){
-    editingId = item ? item.id : null;
-    editingType = item ? type : null;
-    document.getElementById("modalTitle").textContent = item ? "Modifier" : "Nouvelle activité";
-    document.getElementById("fName").value = item ? item.name : "";
-    document.getElementById("fPoints").value = item ? item.points : 10;
-    document.getElementById("fCategoryField").value = item ? (item.category || "Autres") : "Autres";
-    selectedType = item ? type : activeType;
-    document.querySelectorAll(".freq-opt").forEach(function(o){ o.classList.toggle("sel", o.dataset.v===selectedType); });
-    document.getElementById("deleteBtn").style.display = item ? "block" : "none";
-    overlay.classList.add("open");
-  }
-  function closeModal(){ overlay.classList.remove("open"); }
-
-  document.getElementById("addTaskBtn").addEventListener("click", function(){ openModal(null,null); });
-  document.getElementById("cancelBtn").addEventListener("click", closeModal);
-  overlay.addEventListener("click", function(e){ if(e.target===overlay) closeModal(); });
-
-  document.querySelectorAll(".freq-opt").forEach(function(o){
-    o.addEventListener("click", function(){
-      selectedType = o.dataset.v;
-      document.querySelectorAll(".freq-opt").forEach(function(x){ x.classList.toggle("sel", x===o); });
-    });
-  });
-
-  document.getElementById("saveBtn").addEventListener("click", function(){
-    var name = document.getElementById("fName").value.trim();
-    var points = parseInt(document.getElementById("fPoints").value,10) || 1;
-    var category = document.getElementById("fCategoryField").value;
-    if(!name){ document.getElementById("fName").focus(); return; }
-    if(editingId){
-      var arr = editingType==="recurring" ? state.recurring : state.oneoff;
-      var it = arr.find(function(x){ return x.id===editingId; });
-      it.name = name; it.points = points; it.category = category;
-      if(selectedType !== editingType){
-        arr.splice(arr.indexOf(it),1);
-        var target = selectedType==="recurring" ? state.recurring : state.oneoff;
-        if(selectedType==="oneoff"){ it.done=false; it.doneDate=null; }
-        target.push(it);
-      }
-    } else {
-      var newItem = {id:uid(), name:name, points:points, category:category};
-      if(selectedType==="recurring") state.recurring.push(newItem);
-      else { newItem.done=false; newItem.doneDate=null; state.oneoff.push(newItem); }
-    }
-    save();
-    activeType = selectedType;
-    closeModal();
-    renderAll();
-  });
-
-  document.getElementById("deleteBtn").addEventListener("click", function(){
-    if(!editingId) return;
-    if(!confirm("Supprimer cette activité et son historique ?")) return;
-    if(editingType==="recurring"){
-      state.recurring = state.recurring.filter(function(x){ return x.id!==editingId; });
-      state.logs = state.logs.filter(function(l){ return l.activityId!==editingId; });
-      delete visibleActivities[editingId];
-    } else {
-      state.oneoff = state.oneoff.filter(function(x){ return x.id!==editingId; });
-    }
-    save();
-    closeModal();
-    renderAll();
-  });
-
-  document.getElementById("exportBtn").addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = "tasklog-backup-"+dateKey(new Date())+".json";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-  document.getElementById("importBtn").addEventListener("click", function(){ document.getElementById("importFile").click(); });
-  document.getElementById("importFile").addEventListener("change", function(e){
-    var file = e.target.files[0];
-    if(!file) return;
-    var reader = new FileReader();
-    reader.onload = function(){
-      try{
-        var data = JSON.parse(reader.result);
-        if(!data.recurring || !data.oneoff || !data.logs) throw new Error("format invalide");
-        state = data;
-        save(); renderAll();
-        alert("Import réussi.");
-      }catch(err){ alert("Fichier invalide, import annulé."); }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  });
-  document.getElementById("resetBtn").addEventListener("click", function(){
-    if(!confirm("Tout effacer (activités et progression) ? Cette action est irréversible.")) return;
-    localStorage.removeItem(STORE_KEY);
-    state = load();
-    renderAll();
-  });
-
-  document.getElementById("todayLabel").textContent = new Date().toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long"});
-  renderAll();
-})();
-</script>
+        // Initialisation
+        updateSummary();
+        renderActivities();
+        renderStreaks();
+    </script>
 </body>
 </html>
