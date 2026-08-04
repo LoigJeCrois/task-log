@@ -16,6 +16,8 @@
             --text-muted: #64748b;
             --border: #e2e8f0;
             --radius: 12px;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
         }
 
         * {
@@ -29,6 +31,7 @@
             background-color: var(--bg);
             color: var(--text);
             padding: 20px;
+            padding-bottom: 90px;
             max-width: 900px;
             margin: 0 auto;
         }
@@ -38,6 +41,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         h1 {
@@ -114,6 +119,32 @@
             gap: 12px;
         }
 
+        .section-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            line-height: 1;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background: #eef2ff;
+        }
+
         .category-filter {
             display: flex;
             gap: 8px;
@@ -128,6 +159,7 @@
             background: var(--card-bg);
             font-size: 0.85rem;
             cursor: pointer;
+            white-space: nowrap;
         }
 
         .filter-btn.active {
@@ -140,7 +172,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            margin-bottom: 32px;
+            margin-bottom: 20px;
         }
 
         .activity-item {
@@ -151,6 +183,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
         }
 
         .activity-info {
@@ -175,7 +208,7 @@
         .activity-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
         .add-pts-btn {
@@ -188,12 +221,98 @@
             font-weight: 600;
         }
 
+        .delete-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .empty-hint {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 12px 0;
+        }
+
+        /* Formulaire ajout activité / catégorie */
+        .inline-form {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inline-form.open {
+            display: flex;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .form-row > * {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            width: 100%;
+            background: white;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
         /* Table/Séries en cours */
         .streaks-section {
             background: var(--card-bg);
             padding: 20px;
             border-radius: var(--radius);
             border: 1px solid var(--border);
+            margin-bottom: 24px;
         }
 
         .streak-item {
@@ -210,6 +329,50 @@
         .streak-badge {
             font-weight: 700;
             color: #d97706;
+        }
+
+        /* Section Données (export/import) */
+        .data-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .data-section h2 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+
+        .data-section p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        .data-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .file-label:hover {
+            background: #f1f5f9;
+        }
+
+        #import-input {
+            display: none;
         }
 
         /* Contrôles du Graphique */
@@ -236,12 +399,6 @@
             font-weight: 600;
         }
 
-        select {
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-        }
-
         .checkbox-group {
             display: flex;
             gap: 12px;
@@ -263,6 +420,53 @@
             position: relative;
             min-height: 350px;
         }
+
+        /* Barre d'annulation (undo) */
+        #undo-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120%);
+            background: var(--text);
+            color: white;
+            padding: 12px 18px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.25s ease;
+            z-index: 50;
+            max-width: calc(100% - 40px);
+        }
+
+        #undo-toast.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #undo-toast button {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        #undo-toast button:hover {
+            background: rgba(255,255,255,0.28);
+        }
+
+        #import-feedback {
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        #import-feedback.error { color: var(--danger); }
+        #import-feedback.success { color: #16a34a; }
     </style>
 </head>
 <body>
@@ -292,13 +496,28 @@
         <!-- Liste des Activités avec Filtres -->
         <section>
             <div class="section-header">
-                <h2>Activités</h2>
-                <div class="category-filter">
-                    <button class="filter-btn active" onclick="filterCategory('toutes')">Toutes</button>
-                    <button class="filter-btn" onclick="filterCategory('artistique')">Artistique</button>
-                    <button class="filter-btn" onclick="filterCategory('sportive')">Sportive</button>
-                    <button class="filter-btn" onclick="filterCategory('travail')">Travail</button>
-                    <button class="filter-btn" onclick="filterCategory('loisir')">Loisir</button>
+                <div class="section-title-row">
+                    <h2>Activités</h2>
+                    <button class="icon-btn" title="Ajouter une activité" onclick="toggleAddForm()">+</button>
+                </div>
+                <div class="category-filter" id="category-filter">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Formulaire d'ajout d'activité -->
+            <div class="inline-form" id="add-activity-form">
+                <div class="form-row">
+                    <input type="text" id="new-activity-name" placeholder="Nom de l'activité (ex : Méditation)">
+                    <input type="number" id="new-activity-points" placeholder="Points par réalisation" min="1" value="10">
+                </div>
+                <div class="form-row">
+                    <select id="new-activity-category" onchange="handleCategorySelectChange()"></select>
+                    <input type="text" id="new-category-name" placeholder="Nom de la nouvelle catégorie" style="display:none;">
+                </div>
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="toggleAddForm(false)">Annuler</button>
+                    <button class="btn-primary" onclick="submitNewActivity()">Ajouter l'activité</button>
                 </div>
             </div>
 
@@ -313,6 +532,18 @@
             <div id="streaks-list">
                 <!-- Généré dynamiquement -->
             </div>
+        </section>
+
+        <!-- Sauvegarde des données -->
+        <section class="data-section">
+            <h2>Sauvegarder mes données</h2>
+            <p>Exportez vos activités et votre historique dans un fichier, ou réimportez une sauvegarde existante pour ne rien perdre en changeant d'appareil.</p>
+            <div class="data-actions">
+                <button class="btn-primary" onclick="exportData()">⬇ Exporter (JSON)</button>
+                <label class="file-label" for="import-input">⬆ Importer une sauvegarde</label>
+                <input type="file" id="import-input" accept="application/json" onchange="importData(event)">
+            </div>
+            <div id="import-feedback"></div>
         </section>
     </main>
 
@@ -341,9 +572,24 @@
         </div>
     </main>
 
+    <!-- Barre d'annulation -->
+    <div id="undo-toast">
+        <span id="undo-message"></span>
+        <button onclick="undoLastAction()">Annuler</button>
+    </div>
+
     <script>
-        // Données d'exemple initiales
+        // Palette de couleurs cyclique pour les graphiques
+        const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#e11d48', '#0ea5e9'];
+
+        // Données d'exemple initiales — modifiable librement, base générique pour n'importe qui
         let state = {
+            categories: [
+                { id: 'artistique', name: 'Artistique' },
+                { id: 'sportive', name: 'Sportive' },
+                { id: 'travail', name: 'Travail' },
+                { id: 'loisir', name: 'Loisir' }
+            ],
             activities: [
                 { id: 1, name: "Dessin / Peinture", category: "artistique", pointsPerDone: 10, streak: 4 },
                 { id: 2, name: "Course à pied", category: "sportive", pointsPerDone: 15, streak: 2 },
@@ -361,23 +607,44 @@
                 5: [0, 10, 0, 0, 0, 0, 0]        // Guitare
             },
             selectedCategory: 'toutes',
-            chartInstance: null
+            chartInstance: null,
+            lastAction: null // { activityId, activityName, dayIndex, points } — pour l'annulation
         };
 
-        // Navigation
+        // ---------- Utilitaires ----------
+        function slugify(str) {
+            return str.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '') || 'categorie';
+        }
+
+        function nextActivityId() {
+            return state.activities.length ? Math.max(...state.activities.map(a => a.id)) + 1 : 1;
+        }
+
+        function categoryName(catId) {
+            const cat = state.categories.find(c => c.id === catId);
+            return cat ? cat.name : catId;
+        }
+
+        // ---------- Navigation ----------
         function switchPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            
+
             document.getElementById(`page-${pageId}`).classList.add('active');
             event.target.classList.add('active');
 
             if (pageId === 'analytics') {
+                if (document.getElementById('activity-checkboxes').children.length === 0) {
+                    renderCheckboxes();
+                }
                 renderChart();
             }
         }
 
-        // Calculs des stats principales
+        // ---------- Résumé ----------
         function updateSummary() {
             let ptsToday = 0;
             let totalPts7Days = 0;
@@ -394,22 +661,50 @@
             document.getElementById('pts-avg').innerText = avgDaily;
         }
 
-        // Filtrage & Rendu des Activités
-        function filterCategory(cat) {
-            state.selectedCategory = cat;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.innerText.toLowerCase() === cat || (cat === 'toutes' && btn.innerText === 'Toutes'));
+        // ---------- Filtres de catégories ----------
+        function renderCategoryFilters() {
+            const filterEl = document.getElementById('category-filter');
+            filterEl.innerHTML = '';
+
+            const allBtn = document.createElement('button');
+            allBtn.className = 'filter-btn' + (state.selectedCategory === 'toutes' ? ' active' : '');
+            allBtn.innerText = 'Toutes';
+            allBtn.onclick = () => filterCategory('toutes');
+            filterEl.appendChild(allBtn);
+
+            state.categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn' + (state.selectedCategory === cat.id ? ' active' : '');
+                btn.innerText = cat.name;
+                btn.onclick = () => filterCategory(cat.id);
+                filterEl.appendChild(btn);
             });
+        }
+
+        function filterCategory(catId) {
+            state.selectedCategory = catId;
+            renderCategoryFilters();
             renderActivities();
         }
 
+        // ---------- Rendu des Activités ----------
         function renderActivities() {
             const listEl = document.getElementById('activity-list');
             listEl.innerHTML = '';
 
-            const filtered = state.selectedCategory === 'toutes' 
-                ? state.activities 
+            const filtered = state.selectedCategory === 'toutes'
+                ? state.activities
                 : state.activities.filter(a => a.category === state.selectedCategory);
+
+            if (filtered.length === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'empty-hint';
+                hint.innerText = state.activities.length === 0
+                    ? "Aucune activité pour l'instant — ajoutez-en une avec le bouton +."
+                    : "Aucune activité dans cette catégorie.";
+                listEl.appendChild(hint);
+                return;
+            }
 
             filtered.forEach(act => {
                 const item = document.createElement('div');
@@ -417,46 +712,264 @@
                 item.innerHTML = `
                     <div class="activity-info">
                         <span class="activity-name">${act.name}</span>
-                        <span class="activity-category">${act.category}</span>
+                        <span class="activity-category">${categoryName(act.category)}</span>
                     </div>
                     <div class="activity-actions">
                         <button class="add-pts-btn" onclick="addPoints(${act.id})">+${act.pointsPerDone} pts</button>
+                        <button class="delete-btn" title="Supprimer l'activité" onclick="deleteActivity(${act.id})">✕</button>
                     </div>
                 `;
                 listEl.appendChild(item);
             });
         }
 
-        // Rendu des séries en cours
+        // ---------- Séries en cours ----------
         function renderStreaks() {
             const streaksEl = document.getElementById('streaks-list');
             streaksEl.innerHTML = '';
 
-            state.activities.forEach(act => {
-                if (act.streak > 0) {
-                    const item = document.createElement('div');
-                    item.className = 'streak-item';
-                    item.innerHTML = `
-                        <span>${act.name}</span>
-                        <span class="streak-badge">${act.streak} jours consécutifs</span>
-                    `;
-                    streaksEl.appendChild(item);
-                }
+            const withStreak = state.activities.filter(a => a.streak > 0);
+
+            if (withStreak.length === 0) {
+                streaksEl.innerHTML = '<div class="empty-hint">Aucune série en cours.</div>';
+                return;
+            }
+
+            withStreak.forEach(act => {
+                const item = document.createElement('div');
+                item.className = 'streak-item';
+                item.innerHTML = `
+                    <span>${act.name}</span>
+                    <span class="streak-badge">${act.streak} jours consécutifs</span>
+                `;
+                streaksEl.appendChild(item);
             });
         }
 
-        // Validation d'une activité
-        function addPoints(activityId) {
-            const act = state.activities.find(a => a.id === activityId);
-            if (act) {
-                // Ajouter les points au jour actuel (indice 6)
-                state.history[activityId][6] += act.pointsPerDone;
-                updateSummary();
-                if (state.chartInstance) renderChart();
+        // ---------- Ajout d'activités / catégories ----------
+        function toggleAddForm(forceState) {
+            const form = document.getElementById('add-activity-form');
+            const shouldOpen = typeof forceState === 'boolean' ? forceState : !form.classList.contains('open');
+
+            if (shouldOpen) {
+                renderCategorySelect();
+                form.classList.add('open');
+            } else {
+                form.classList.remove('open');
+                document.getElementById('new-activity-name').value = '';
+                document.getElementById('new-activity-points').value = 10;
+                document.getElementById('new-category-name').value = '';
+                document.getElementById('new-category-name').style.display = 'none';
             }
         }
 
-        // Gestion de la logique des Graphiques (Chart.js)
+        function renderCategorySelect() {
+            const select = document.getElementById('new-activity-category');
+            select.innerHTML = '';
+
+            state.categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.innerText = cat.name;
+                select.appendChild(opt);
+            });
+
+            const newOpt = document.createElement('option');
+            newOpt.value = '__new__';
+            newOpt.innerText = '+ Nouvelle catégorie…';
+            select.appendChild(newOpt);
+        }
+
+        function handleCategorySelectChange() {
+            const select = document.getElementById('new-activity-category');
+            const newCatInput = document.getElementById('new-category-name');
+            newCatInput.style.display = select.value === '__new__' ? 'block' : 'none';
+        }
+
+        function addCategory(name) {
+            const baseId = slugify(name);
+            let id = baseId;
+            let n = 1;
+            while (state.categories.some(c => c.id === id)) {
+                id = `${baseId}-${n}`;
+                n++;
+            }
+            state.categories.push({ id, name: name.trim() });
+            return id;
+        }
+
+        function submitNewActivity() {
+            const nameInput = document.getElementById('new-activity-name');
+            const pointsInput = document.getElementById('new-activity-points');
+            const select = document.getElementById('new-activity-category');
+            const newCatInput = document.getElementById('new-category-name');
+
+            const name = nameInput.value.trim();
+            const points = parseInt(pointsInput.value, 10);
+
+            if (!name) {
+                alert("Merci de donner un nom à l'activité.");
+                return;
+            }
+            if (!points || points <= 0) {
+                alert("Le nombre de points doit être supérieur à 0.");
+                return;
+            }
+
+            let categoryId = select.value;
+            if (categoryId === '__new__') {
+                const newCatName = newCatInput.value.trim();
+                if (!newCatName) {
+                    alert("Merci de donner un nom à la nouvelle catégorie.");
+                    return;
+                }
+                categoryId = addCategory(newCatName);
+            }
+
+            const id = nextActivityId();
+            state.activities.push({ id, name, category: categoryId, pointsPerDone: points, streak: 0 });
+            state.history[id] = [0, 0, 0, 0, 0, 0, 0];
+
+            toggleAddForm(false);
+            renderCategoryFilters();
+            renderActivities();
+            renderStreaks();
+            updateSummary();
+            document.getElementById('activity-checkboxes').innerHTML = '';
+            if (state.chartInstance) renderChart();
+        }
+
+        function deleteActivity(activityId) {
+            const act = state.activities.find(a => a.id === activityId);
+            if (!act) return;
+            if (!confirm(`Supprimer "${act.name}" et son historique ?`)) return;
+
+            state.activities = state.activities.filter(a => a.id !== activityId);
+            delete state.history[activityId];
+            if (state.lastAction && state.lastAction.activityId === activityId) {
+                hideUndoToast();
+            }
+
+            renderActivities();
+            renderStreaks();
+            updateSummary();
+            document.getElementById('activity-checkboxes').innerHTML = '';
+            if (state.chartInstance) renderChart();
+        }
+
+        // ---------- Points & Annulation (undo) ----------
+        function addPoints(activityId) {
+            const act = state.activities.find(a => a.id === activityId);
+            if (!act) return;
+
+            const dayIndex = 6; // Aujourd'hui
+            state.history[activityId][dayIndex] += act.pointsPerDone;
+
+            state.lastAction = {
+                activityId,
+                activityName: act.name,
+                dayIndex,
+                points: act.pointsPerDone
+            };
+            showUndoToast(`+${act.pointsPerDone} pts ajoutés pour "${act.name}"`);
+
+            updateSummary();
+            if (state.chartInstance) renderChart();
+        }
+
+        function undoLastAction() {
+            const action = state.lastAction;
+            if (!action) return;
+
+            if (state.history[action.activityId]) {
+                state.history[action.activityId][action.dayIndex] -= action.points;
+                if (state.history[action.activityId][action.dayIndex] < 0) {
+                    state.history[action.activityId][action.dayIndex] = 0;
+                }
+            }
+
+            hideUndoToast();
+            updateSummary();
+            if (state.chartInstance) renderChart();
+        }
+
+        function showUndoToast(message) {
+            document.getElementById('undo-message').innerText = message;
+            document.getElementById('undo-toast').classList.add('visible');
+        }
+
+        function hideUndoToast() {
+            state.lastAction = null;
+            document.getElementById('undo-toast').classList.remove('visible');
+        }
+
+        // ---------- Export / Import ----------
+        function exportData() {
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                categories: state.categories,
+                activities: state.activities,
+                labels: state.labels,
+                history: state.history
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `suivi-activites-${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            const feedback = document.getElementById('import-feedback');
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (!Array.isArray(data.activities) || !Array.isArray(data.categories) || typeof data.history !== 'object') {
+                        throw new Error('Format invalide');
+                    }
+                    if (!confirm("Importer ce fichier va remplacer toutes les données actuelles. Continuer ?")) {
+                        event.target.value = '';
+                        return;
+                    }
+
+                    state.categories = data.categories;
+                    state.activities = data.activities;
+                    state.labels = Array.isArray(data.labels) && data.labels.length === 7 ? data.labels : state.labels;
+                    state.history = data.history;
+                    state.selectedCategory = 'toutes';
+                    hideUndoToast();
+
+                    renderCategoryFilters();
+                    renderActivities();
+                    renderStreaks();
+                    updateSummary();
+                    document.getElementById('activity-checkboxes').innerHTML = '';
+                    if (state.chartInstance) renderChart();
+
+                    feedback.className = 'success';
+                    feedback.innerText = 'Import réussi.';
+                } catch (err) {
+                    feedback.className = 'error';
+                    feedback.innerText = "Échec de l'import : fichier invalide ou corrompu.";
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ---------- Graphiques (Chart.js) ----------
         function updateChartConfig() {
             const mode = document.getElementById('chart-mode').value;
             const selectionGroup = document.getElementById('activity-selection-group');
@@ -487,25 +1000,21 @@
             const ctx = document.getElementById('pointsChart').getContext('2d');
             const mode = document.getElementById('chart-mode').value;
 
-            const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
-
             let datasets = [];
 
             if (mode === 'category') {
-                // Regroupement des points par catégorie
-                const categories = ['artistique', 'sportive', 'travail', 'loisir'];
-                
-                datasets = categories.map((cat, index) => {
+                // Regroupement des points par catégorie (dynamique)
+                datasets = state.categories.map((cat, index) => {
                     const catData = [0, 0, 0, 0, 0, 0, 0];
-                    state.activities.filter(a => a.category === cat).forEach(act => {
-                        const actHistory = state.history[act.id];
+                    state.activities.filter(a => a.category === cat.id).forEach(act => {
+                        const actHistory = state.history[act.id] || [0, 0, 0, 0, 0, 0, 0];
                         actHistory.forEach((val, i) => catData[i] += val);
                     });
 
                     return {
-                        label: cat.charAt(0).toUpperCase() + cat.slice(1),
+                        label: cat.name,
                         data: catData,
-                        backgroundColor: colors[index % colors.length]
+                        backgroundColor: CHART_COLORS[index % CHART_COLORS.length]
                     };
                 });
             } else {
@@ -517,8 +1026,8 @@
                     .filter(act => selectedIds.includes(act.id))
                     .map((act, index) => ({
                         label: act.name,
-                        data: state.history[act.id],
-                        backgroundColor: colors[index % colors.length]
+                        data: state.history[act.id] || [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: CHART_COLORS[index % CHART_COLORS.length]
                     }));
             }
 
@@ -546,10 +1055,11 @@
             });
         }
 
-        // Initialisation
-        updateSummary();
+        // ---------- Initialisation ----------
+        renderCategoryFilters();
         renderActivities();
         renderStreaks();
+        updateSummary();
     </script>
 </body>
 </html>
