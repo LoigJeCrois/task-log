@@ -551,8 +551,8 @@
                 </div>
                 <div class="form-row">
                     <select id="new-activity-type">
-                        <option value="positive">⭐ Activité à encourager</option>
-                        <option value="negative">⚠️ Activité à limiter</option>
+                        <option value="positive">Activité à encourager</option>
+                        <option value="negative">Activité à limiter</option>
                     </select>
                 </div>
                 <div class="form-actions">
@@ -579,10 +579,10 @@
             <h2>Sauvegarder mes données</h2>
             <p>Exportez vos activités et votre historique dans un fichier, ou réimportez une sauvegarde existante pour ne rien perdre en changeant d'appareil.</p>
             <div class="data-actions">
-                <button class="btn-primary" onclick="exportData()">⬇ Exporter (JSON)</button>
-                <label class="file-label" for="import-input">⬆ Importer une sauvegarde</label>
+                <button class="btn-primary" onclick="exportData()">Exporter (JSON)</button>
+                <label class="file-label" for="import-input">Importer une sauvegarde</label>
                 <input type="file" id="import-input" accept="application/json" onchange="importData(event)">
-                <button class="btn-secondary btn-danger" onclick="resetData()">🗑 Réinitialiser (tout effacer)</button>
+                <button class="btn-secondary btn-danger" onclick="resetData()">Réinitialiser (tout effacer)</button>
             </div>
             <div id="import-feedback"></div>
         </section>
@@ -742,7 +742,7 @@
                     <div class="activity-info">
                         <span class="activity-name">${act.name}</span>
                         <span class="activity-category">${categoryName(act.category)}</span>
-                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? '⚠️ à limiter' : '⭐ à encourager'}</span>
+                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? 'à limiter' : 'à encourager'}</span>
                         ${todayPts > 0 ? `<span class="today-badge">✓ ${todayPts} pts ajoutés aujourd'hui</span>` : ''}
                     </div>
                     <div class="activity-actions">
