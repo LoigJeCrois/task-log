@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suivi d'Activités & Points</title>
-    <!-- Chart.js CDN pour les histogrammes -->
+    <!-- Chart.js CDN pour les graphiques -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -218,9 +218,6 @@
             font-size: 0.75rem;
             font-weight: 700;
             color: #16a34a;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
 
         .type-badge {
@@ -239,6 +236,16 @@
         .type-badge.type-negative {
             background: #ffedd5;
             color: #c2410c;
+        }
+
+        .multiplier-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--primary);
+            background: #eef2ff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            width: fit-content;
         }
 
         .activity-actions {
@@ -375,7 +382,7 @@
             background: var(--danger-bg);
         }
 
-        /* Table/Séries en cours */
+        /* Séries en cours */
         .streaks-section {
             background: var(--card-bg);
             padding: 20px;
@@ -468,19 +475,6 @@
             font-weight: 600;
         }
 
-        .checkbox-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .checkbox-item {
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
         .chart-container {
             background: var(--card-bg);
             padding: 20px;
@@ -514,16 +508,12 @@
         <!-- Résumé des points -->
         <section class="summary-grid">
             <div class="card">
-                <div class="card-title">Points aujourd'hui</div>
-                <div class="card-value" id="pts-today">0</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Moyenne points / jour</div>
-                <div class="card-value" id="pts-avg">0</div>
-            </div>
-            <div class="card">
                 <div class="card-title">Score net aujourd'hui</div>
                 <div class="card-value" id="pts-net">0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Moyenne (30 jours glissants)</div>
+                <div class="card-value" id="pts-avg30">0</div>
             </div>
         </section>
 
@@ -593,19 +583,10 @@
         <div class="chart-controls">
             <div class="control-group">
                 <label for="chart-mode">Mode de vue :</label>
-                <select id="chart-mode" onchange="updateChartConfig()">
-                    <option value="category">Par Catégorie</option>
-                    <option value="stacked">Barres Superposées (Activités)</option>
-                    <option value="motivation">Score de motivation (net)</option>
+                <select id="chart-mode" onchange="renderChart()">
+                    <option value="daily">Points nets par jour</option>
+                    <option value="weekly">Récurrence par semaine</option>
                 </select>
-            </div>
-
-            <!-- Filtre spécifique par catégorie en mode superposition -->
-            <div class="control-group" id="activity-selection-group" style="display: none;">
-                <label>Sélectionner les activités à superposer :</label>
-                <div class="checkbox-group" id="activity-checkboxes">
-                    <!-- Généré dynamiquement -->
-                </div>
             </div>
         </div>
 
@@ -618,18 +599,24 @@
         // Palette de couleurs cyclique pour les graphiques
         const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#e11d48', '#0ea5e9'];
 
+        // Paliers du coefficient de série (jours consécutifs -> multiplicateur), plafonné à ×1,7
+        const STREAK_TIERS = [
+            { days: 21, mult: 1.7 },
+            { days: 7, mult: 1.5 },
+            { days: 3, mult: 1.2 }
+        ];
+
         // État initial : vide, prêt à être personnalisé (identique à l'état après un reset)
+        // Historique = { activityId: { 'AAAA-MM-JJ': { count: n, points: total signé et pondéré } } }
         let state = {
             categories: [],
             activities: [],
-            // Historique des points sur 7 jours [J-6, J-5, J-4, J-3, J-2, J-1, Aujourd'hui]
-            labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
             history: {},
             selectedCategory: 'toutes',
             chartInstance: null
         };
 
-        // ---------- Utilitaires ----------
+        // ---------- Utilitaires généraux ----------
         function slugify(str) {
             return str.toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -646,6 +633,113 @@
             return cat ? cat.name : catId;
         }
 
+        // ---------- Utilitaires de dates ----------
+        function todayKey() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        function shiftDateKey(dateKey, deltaDays) {
+            const d = new Date(dateKey + 'T00:00:00');
+            d.setDate(d.getDate() + deltaDays);
+            return d.toISOString().slice(0, 10);
+        }
+
+        function dateDiffDays(a, b) {
+            const da = new Date(a + 'T00:00:00');
+            const db = new Date(b + 'T00:00:00');
+            return Math.round((db - da) / 86400000);
+        }
+
+        function formatDateShort(dateKey) {
+            const d = new Date(dateKey + 'T00:00:00');
+            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        }
+
+        // Renvoie le lundi (AAAA-MM-JJ) de la semaine contenant dateKey
+        function getMondayKey(dateKey) {
+            const d = new Date(dateKey + 'T00:00:00');
+            const day = d.getDay(); // 0 = dimanche ... 6 = samedi
+            const diff = (day === 0 ? -6 : 1 - day);
+            d.setDate(d.getDate() + diff);
+            return d.toISOString().slice(0, 10);
+        }
+
+        // ---------- Coefficient de série ----------
+        function getMultiplier(streakLen) {
+            for (const tier of STREAK_TIERS) {
+                if (streakLen >= tier.days) return tier.mult;
+            }
+            return 1;
+        }
+
+        function dayCount(activityId, dateKey) {
+            const h = state.history[activityId];
+            return (h && h[dateKey]) ? h[dateKey].count : 0;
+        }
+
+        // Série actuelle "vivante" : compte les jours consécutifs jusqu'à aujourd'hui si déjà fait,
+        // sinon jusqu'à hier (encore valable tant que la journée n'est pas terminée).
+        function computeStreak(activityId) {
+            const tKey = todayKey();
+            const doneToday = dayCount(activityId, tKey) > 0;
+            let i = doneToday ? 0 : 1;
+
+            if (!doneToday && dayCount(activityId, shiftDateKey(tKey, -1)) === 0) {
+                return 0;
+            }
+
+            let streak = 0;
+            while (dayCount(activityId, shiftDateKey(tKey, -i)) > 0) {
+                streak++;
+                i++;
+            }
+            return streak;
+        }
+
+        // Série "projetée" utilisée pour calculer le coefficient au moment de valider une activité aujourd'hui
+        function computeStreakIncludingToday(activityId) {
+            if (dayCount(activityId, todayKey()) > 0) return computeStreak(activityId);
+            return computeStreak(activityId) + 1;
+        }
+
+        // ---------- Agrégation des points ----------
+        function getNetPointsForDate(dateKey) {
+            let sum = 0;
+            state.activities.forEach(act => {
+                const h = state.history[act.id];
+                if (h && h[dateKey]) sum += h[dateKey].points;
+            });
+            return sum;
+        }
+
+        function getFirstTrackedDateKey() {
+            let earliest = null;
+            Object.values(state.history).forEach(actHist => {
+                Object.keys(actHist).forEach(d => {
+                    if (!earliest || d < earliest) earliest = d;
+                });
+            });
+            return earliest;
+        }
+
+        // Moyenne glissante sur "windowSize" jours se terminant à endDateKey,
+        // divisée par le nombre de jours réellement écoulés depuis le premier suivi (plafonné à windowSize)
+        function computeRollingAverage(windowSize, endDateKey) {
+            const first = getFirstTrackedDateKey();
+            if (!first) return 0;
+            const daysSinceFirst = dateDiffDays(first, endDateKey) + 1;
+            const win = Math.min(windowSize, Math.max(daysSinceFirst, 1));
+            let sum = 0;
+            for (let i = 0; i < win; i++) {
+                sum += getNetPointsForDate(shiftDateKey(endDateKey, -i));
+            }
+            return sum / win;
+        }
+
+        function round1(n) {
+            return Math.round(n * 10) / 10;
+        }
+
         // ---------- Navigation ----------
         function switchPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -655,36 +749,25 @@
             event.target.classList.add('active');
 
             if (pageId === 'analytics') {
-                if (document.getElementById('activity-checkboxes').children.length === 0) {
-                    renderCheckboxes();
-                }
                 renderChart();
             }
         }
 
         // ---------- Résumé ----------
         function updateSummary() {
-            let ptsToday = 0;
-            let totalPts7Days = 0;
-            let netToday = 0;
-
-            state.activities.forEach(act => {
-                const arr = state.history[act.id] || [0, 0, 0, 0, 0, 0, 0];
-                const sign = act.type === 'negative' ? -1 : 1;
-                ptsToday += arr[6];
-                totalPts7Days += arr.reduce((a, b) => a + b, 0);
-                netToday += arr[6] * sign;
-            });
-
-            const avgDaily = Math.round(totalPts7Days / 7);
-
-            document.getElementById('pts-today').innerText = ptsToday;
-            document.getElementById('pts-avg').innerText = avgDaily;
+            const key = todayKey();
+            const netToday = round1(getNetPointsForDate(key));
+            const avg30 = round1(computeRollingAverage(30, key));
 
             const netEl = document.getElementById('pts-net');
             netEl.innerText = (netToday > 0 ? '+' : '') + netToday;
             netEl.classList.remove('net-positive', 'net-negative', 'net-zero');
             netEl.classList.add(netToday > 0 ? 'net-positive' : netToday < 0 ? 'net-negative' : 'net-zero');
+
+            const avgEl = document.getElementById('pts-avg30');
+            avgEl.innerText = (avg30 > 0 ? '+' : '') + avg30;
+            avgEl.classList.remove('net-positive', 'net-negative', 'net-zero');
+            avgEl.classList.add(avg30 > 0 ? 'net-positive' : avg30 < 0 ? 'net-negative' : 'net-zero');
         }
 
         // ---------- Filtres de catégories ----------
@@ -732,21 +815,26 @@
                 return;
             }
 
+            const key = todayKey();
+
             filtered.forEach(act => {
-                const todayPts = (state.history[act.id] && state.history[act.id][6]) || 0;
+                const entry = (state.history[act.id] && state.history[act.id][key]) || { count: 0, points: 0 };
                 const isNegative = act.type === 'negative';
+                const projectedStreak = computeStreakIncludingToday(act.id);
+                const currentMultiplier = getMultiplier(projectedStreak);
 
                 const item = document.createElement('div');
-                item.className = 'activity-item' + (todayPts > 0 ? ' done-today' : '');
+                item.className = 'activity-item' + (entry.count > 0 ? ' done-today' : '');
                 item.innerHTML = `
                     <div class="activity-info">
                         <span class="activity-name">${act.name}</span>
                         <span class="activity-category">${categoryName(act.category)}</span>
                         <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? 'à limiter' : 'à encourager'}</span>
-                        ${todayPts > 0 ? `<span class="today-badge">✓ ${todayPts} pts ajoutés aujourd'hui</span>` : ''}
+                        ${currentMultiplier > 1 ? `<span class="multiplier-badge">bonus de série ×${currentMultiplier}</span>` : ''}
+                        ${entry.count > 0 ? `<span class="today-badge">Fait ${entry.count}× aujourd'hui (${entry.points > 0 ? '+' : ''}${round1(entry.points)} pts)</span>` : ''}
                     </div>
                     <div class="activity-actions">
-                        <button class="minus-btn" title="Retirer les derniers points ajoutés aujourd'hui" onclick="removePoints(${act.id})" ${todayPts === 0 ? 'disabled' : ''}>−</button>
+                        <button class="minus-btn" title="Retirer la dernière validation d'aujourd'hui" onclick="removePoints(${act.id})" ${entry.count === 0 ? 'disabled' : ''}>−</button>
                         <button class="add-pts-btn" style="background:${isNegative ? '#f59e0b' : 'var(--primary)'}" onclick="addPoints(${act.id})">+${act.pointsPerDone} pts</button>
                         <button class="delete-btn" title="Supprimer l'activité" onclick="deleteActivity(${act.id})">✕</button>
                     </div>
@@ -760,19 +848,22 @@
             const streaksEl = document.getElementById('streaks-list');
             streaksEl.innerHTML = '';
 
-            const withStreak = state.activities.filter(a => a.streak > 0);
+            const withStreak = state.activities
+                .map(act => ({ act, streak: computeStreak(act.id) }))
+                .filter(x => x.streak > 0)
+                .sort((a, b) => b.streak - a.streak);
 
             if (withStreak.length === 0) {
                 streaksEl.innerHTML = '<div class="empty-hint">Aucune série en cours.</div>';
                 return;
             }
 
-            withStreak.forEach(act => {
+            withStreak.forEach(({ act, streak }) => {
                 const item = document.createElement('div');
                 item.className = 'streak-item';
                 item.innerHTML = `
                     <span>${act.name}</span>
-                    <span class="streak-badge">${act.streak} jours consécutifs</span>
+                    <span class="streak-badge">${streak} jours consécutifs 🔥 (×${getMultiplier(streak)})</span>
                 `;
                 streaksEl.appendChild(item);
             });
@@ -863,15 +954,14 @@
             const type = document.getElementById('new-activity-type').value;
 
             const id = nextActivityId();
-            state.activities.push({ id, name, category: categoryId, pointsPerDone: points, streak: 0, type });
-            state.history[id] = [0, 0, 0, 0, 0, 0, 0];
+            state.activities.push({ id, name, category: categoryId, pointsPerDone: points, type });
+            state.history[id] = {};
 
             toggleAddForm(false);
             renderCategoryFilters();
             renderActivities();
             renderStreaks();
             updateSummary();
-            document.getElementById('activity-checkboxes').innerHTML = '';
             if (state.chartInstance) renderChart();
         }
 
@@ -886,7 +976,6 @@
             renderActivities();
             renderStreaks();
             updateSummary();
-            document.getElementById('activity-checkboxes').innerHTML = '';
             if (state.chartInstance) renderChart();
         }
 
@@ -895,10 +984,21 @@
             const act = state.activities.find(a => a.id === activityId);
             if (!act) return;
 
-            if (!state.history[activityId]) state.history[activityId] = [0, 0, 0, 0, 0, 0, 0];
-            state.history[activityId][6] += act.pointsPerDone; // Aujourd'hui
+            if (!state.history[activityId]) state.history[activityId] = {};
+            const key = todayKey();
+            const entry = state.history[activityId][key] || { count: 0, points: 0 };
+
+            const streakForToday = computeStreakIncludingToday(activityId);
+            const multiplier = getMultiplier(streakForToday);
+            const sign = act.type === 'negative' ? -1 : 1;
+            const unitPoints = act.pointsPerDone * multiplier * sign;
+
+            entry.count += 1;
+            entry.points += unitPoints;
+            state.history[activityId][key] = entry;
 
             renderActivities();
+            renderStreaks();
             updateSummary();
             if (state.chartInstance) renderChart();
         }
@@ -907,9 +1007,27 @@
             const act = state.activities.find(a => a.id === activityId);
             if (!act || !state.history[activityId]) return;
 
-            state.history[activityId][6] = Math.max(0, state.history[activityId][6] - act.pointsPerDone);
+            const key = todayKey();
+            const entry = state.history[activityId][key];
+            if (!entry || entry.count <= 0) return;
+
+            // Le coefficient d'aujourd'hui ne varie pas d'un clic à l'autre dans la même journée
+            const streakForToday = computeStreakIncludingToday(activityId);
+            const multiplier = getMultiplier(streakForToday);
+            const sign = act.type === 'negative' ? -1 : 1;
+            const unitPoints = act.pointsPerDone * multiplier * sign;
+
+            entry.count -= 1;
+            entry.points -= unitPoints;
+
+            if (entry.count <= 0) {
+                delete state.history[activityId][key];
+            } else {
+                state.history[activityId][key] = entry;
+            }
 
             renderActivities();
+            renderStreaks();
             updateSummary();
             if (state.chartInstance) renderChart();
         }
@@ -929,7 +1047,6 @@
             renderActivities();
             renderStreaks();
             updateSummary();
-            document.getElementById('activity-checkboxes').innerHTML = '';
             if (state.chartInstance) renderChart();
 
             const feedback = document.getElementById('import-feedback');
@@ -943,7 +1060,6 @@
                 exportedAt: new Date().toISOString(),
                 categories: state.categories,
                 activities: state.activities,
-                labels: state.labels,
                 history: state.history
             };
 
@@ -979,7 +1095,6 @@
 
                     state.categories = data.categories;
                     state.activities = data.activities;
-                    state.labels = Array.isArray(data.labels) && data.labels.length === 7 ? data.labels : state.labels;
                     state.history = data.history;
                     state.selectedCategory = 'toutes';
 
@@ -987,7 +1102,6 @@
                     renderActivities();
                     renderStreaks();
                     updateSummary();
-                    document.getElementById('activity-checkboxes').innerHTML = '';
                     if (state.chartInstance) renderChart();
 
                     feedback.className = 'success';
@@ -1003,42 +1117,6 @@
         }
 
         // ---------- Graphiques (Chart.js) ----------
-        function updateChartConfig() {
-            const mode = document.getElementById('chart-mode').value;
-            const selectionGroup = document.getElementById('activity-selection-group');
-            selectionGroup.style.display = (mode === 'stacked') ? 'flex' : 'none';
-
-            if (mode === 'stacked' && document.getElementById('activity-checkboxes').children.length === 0) {
-                renderCheckboxes();
-            }
-            renderChart();
-        }
-
-        function renderCheckboxes() {
-            const boxContainer = document.getElementById('activity-checkboxes');
-            boxContainer.innerHTML = '';
-
-            state.activities.forEach(act => {
-                const label = document.createElement('label');
-                label.className = 'checkbox-item';
-                label.innerHTML = `
-                    <input type="checkbox" value="${act.id}" checked onchange="renderChart()">
-                    ${act.name}
-                `;
-                boxContainer.appendChild(label);
-            });
-        }
-
-        function computeNetSeries() {
-            const net = [0, 0, 0, 0, 0, 0, 0];
-            state.activities.forEach(act => {
-                const sign = act.type === 'negative' ? -1 : 1;
-                const arr = state.history[act.id] || [0, 0, 0, 0, 0, 0, 0];
-                arr.forEach((val, i) => net[i] += val * sign);
-            });
-            return net;
-        }
-
         function renderChart() {
             const ctx = document.getElementById('pointsChart').getContext('2d');
             const mode = document.getElementById('chart-mode').value;
@@ -1047,89 +1125,129 @@
                 state.chartInstance.destroy();
             }
 
-            if (mode === 'motivation') {
-                // Courbe du score net (points "à encourager" - points "à limiter") : peut monter ou descendre
-                const netSeries = computeNetSeries();
-
-                state.chartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: state.labels,
-                        datasets: [
-                            {
-                                label: 'Score net',
-                                data: netSeries,
-                                borderWidth: 3,
-                                tension: 0.3,
-                                fill: false,
-                                segment: {
-                                    borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0) ? '#dc2626' : '#16a34a'
-                                },
-                                pointBackgroundColor: netSeries.map(v => v < 0 ? '#dc2626' : v > 0 ? '#16a34a' : '#94a3b8'),
-                                pointBorderColor: '#ffffff',
-                                pointRadius: 5,
-                                pointHoverRadius: 7
-                            },
-                            {
-                                label: 'Zéro',
-                                data: [0, 0, 0, 0, 0, 0, 0],
-                                borderColor: '#cbd5e1',
-                                borderDash: [6, 6],
-                                borderWidth: 1,
-                                pointRadius: 0,
-                                fill: false
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: false }
-                        },
-                        plugins: {
-                            legend: { position: 'bottom' }
-                        }
-                    }
-                });
-                return;
-            }
-
-            let datasets = [];
-
-            if (mode === 'category') {
-                // Regroupement des points par catégorie (dynamique)
-                datasets = state.categories.map((cat, index) => {
-                    const catData = [0, 0, 0, 0, 0, 0, 0];
-                    state.activities.filter(a => a.category === cat.id).forEach(act => {
-                        const actHistory = state.history[act.id] || [0, 0, 0, 0, 0, 0, 0];
-                        actHistory.forEach((val, i) => catData[i] += val);
-                    });
-
-                    return {
-                        label: cat.name,
-                        data: catData,
-                        backgroundColor: CHART_COLORS[index % CHART_COLORS.length]
-                    };
-                });
+            if (mode === 'weekly') {
+                renderWeeklyChart(ctx);
             } else {
-                // Mode Superposition / Empilé par Activité
-                const selectedIds = Array.from(document.querySelectorAll('#activity-checkboxes input:checked'))
-                                         .map(cb => parseInt(cb.value));
-
-                datasets = state.activities
-                    .filter(act => selectedIds.includes(act.id))
-                    .map((act, index) => ({
-                        label: act.name,
-                        data: state.history[act.id] || [0, 0, 0, 0, 0, 0, 0],
-                        backgroundColor: CHART_COLORS[index % CHART_COLORS.length]
-                    }));
+                renderDailyChart(ctx);
             }
+        }
+
+        // Points nets par jour, en continu depuis le premier jour suivi, + moyenne glissante 30 jours
+        function renderDailyChart(ctx) {
+            const first = getFirstTrackedDateKey();
+            const end = todayKey();
+
+            let labels = [];
+            let netData = [];
+            let avgData = [];
+
+            if (!first) {
+                labels = [formatDateShort(end)];
+                netData = [0];
+                avgData = [0];
+            } else {
+                const totalDays = dateDiffDays(first, end) + 1;
+                for (let i = 0; i < totalDays; i++) {
+                    const key = shiftDateKey(first, i);
+                    labels.push(formatDateShort(key));
+                    netData.push(round1(getNetPointsForDate(key)));
+                    avgData.push(round1(computeRollingAverage(30, key)));
+                }
+            }
+
+            const denseData = netData.length > 60;
+
+            state.chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Score net du jour',
+                            data: netData,
+                            borderWidth: 2,
+                            tension: 0.25,
+                            fill: false,
+                            segment: {
+                                borderColor: (c) => (c.p0.parsed.y < 0 || c.p1.parsed.y < 0) ? '#dc2626' : '#16a34a'
+                            },
+                            pointRadius: denseData ? 0 : 3,
+                            pointBackgroundColor: netData.map(v => v < 0 ? '#dc2626' : v > 0 ? '#16a34a' : '#94a3b8')
+                        },
+                        {
+                            label: 'Moyenne glissante (30 jours)',
+                            data: avgData,
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            borderColor: '#4f46e5',
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.25
+                        },
+                        {
+                            label: 'Zéro',
+                            data: labels.map(() => 0),
+                            borderColor: '#cbd5e1',
+                            borderDash: [2, 2],
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: false }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Récurrence par semaine : une barre = une semaine, segments empilés = activités, hauteur = nombre d'occurrences
+        function renderWeeklyChart(ctx) {
+            const first = getFirstTrackedDateKey();
+            const end = todayKey();
+
+            let weekKeys = [];
+            if (first) {
+                const firstMonday = getMondayKey(first);
+                const lastMonday = getMondayKey(end);
+                let cursor = firstMonday;
+                while (cursor <= lastMonday) {
+                    weekKeys.push(cursor);
+                    cursor = shiftDateKey(cursor, 7);
+                }
+            } else {
+                weekKeys = [getMondayKey(end)];
+            }
+
+            const labels = weekKeys.map(mon => `Sem. du ${formatDateShort(mon)}`);
+
+            const datasets = state.activities.map((act, index) => {
+                const data = weekKeys.map(mon => {
+                    let total = 0;
+                    for (let i = 0; i < 7; i++) {
+                        total += dayCount(act.id, shiftDateKey(mon, i));
+                    }
+                    return total;
+                });
+
+                return {
+                    label: act.name,
+                    data: data,
+                    backgroundColor: CHART_COLORS[index % CHART_COLORS.length]
+                };
+            });
 
             state.chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: state.labels,
+                    labels: labels,
                     datasets: datasets
                 },
                 options: {
@@ -1137,7 +1255,7 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: { stacked: true },
-                        y: { stacked: true, beginAtZero: true }
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
                     },
                     plugins: {
                         legend: { position: 'bottom' }
