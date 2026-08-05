@@ -551,8 +551,8 @@
                 </div>
                 <div class="form-row">
                     <select id="new-activity-type">
-                        <option value="positive"> Activité à encourager</option>
-                        <option value="negative">  Activité à limiter</option>
+                        <option value="positive">⭐ Activité à encourager</option>
+                        <option value="negative">⚠️ Activité à limiter</option>
                     </select>
                 </div>
                 <div class="form-actions">
@@ -742,7 +742,7 @@
                     <div class="activity-info">
                         <span class="activity-name">${act.name}</span>
                         <span class="activity-category">${categoryName(act.category)}</span>
-                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? '  à limiter' : ' à encourager'}</span>
+                        <span class="type-badge type-${isNegative ? 'negative' : 'positive'}">${isNegative ? '⚠️ à limiter' : '⭐ à encourager'}</span>
                         ${todayPts > 0 ? `<span class="today-badge">✓ ${todayPts} pts ajoutés aujourd'hui</span>` : ''}
                     </div>
                     <div class="activity-actions">
