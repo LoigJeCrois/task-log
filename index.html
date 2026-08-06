@@ -567,7 +567,7 @@
         <!-- Sauvegarde des données -->
         <section class="data-section">
             <h2>Sauvegarder mes données</h2>
-            <p>Exportez vos activités et votre historique dans un fichier, ou réimportez une sauvegarde existante pour ne rien perdre en changeant d'appareil.</p>
+            <p>Vos données sont sauvegardées automatiquement dans ce navigateur. Exportez-les régulièrement quand même pour en garder une copie, ou pour les transférer vers un autre appareil.</p>
             <div class="data-actions">
                 <button class="btn-primary" onclick="exportData()">Exporter (JSON)</button>
                 <label class="file-label" for="import-input">Importer une sauvegarde</label>
@@ -615,6 +615,40 @@
             selectedCategory: 'toutes',
             chartInstance: null
         };
+
+        // ---------- Sauvegarde automatique (localStorage) ----------
+        // Fonctionne quand la page est hébergée/ouverte normalement (ex. GitHub Pages).
+        // Ne fonctionne pas dans l'aperçu sandboxé du chat Claude : échoue alors silencieusement,
+        // l'app continue en mémoire seule (export/import restent utilisables dans ce cas).
+        const STORAGE_KEY = 'suivi-activites-state-v1';
+
+        function saveState() {
+            try {
+                const payload = {
+                    categories: state.categories,
+                    activities: state.activities,
+                    history: state.history
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                // Stockage indisponible (navigation privée, aperçu sandboxé, etc.)
+            }
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (Array.isArray(data.categories)) state.categories = data.categories;
+                if (Array.isArray(data.activities)) state.activities = data.activities;
+                if (data.history && typeof data.history === 'object') state.history = data.history;
+            } catch (e) {
+                // Données corrompues ou stockage indisponible : on garde l'état vide par défaut
+            }
+        }
+
+        loadState();
 
         // ---------- Utilitaires généraux ----------
         function slugify(str) {
@@ -957,6 +991,7 @@
             state.activities.push({ id, name, category: categoryId, pointsPerDone: points, type });
             state.history[id] = {};
 
+            saveState();
             toggleAddForm(false);
             renderCategoryFilters();
             renderActivities();
@@ -973,6 +1008,7 @@
             state.activities = state.activities.filter(a => a.id !== activityId);
             delete state.history[activityId];
 
+            saveState();
             renderActivities();
             renderStreaks();
             updateSummary();
@@ -997,6 +1033,7 @@
             entry.points += unitPoints;
             state.history[activityId][key] = entry;
 
+            saveState();
             renderActivities();
             renderStreaks();
             updateSummary();
@@ -1026,6 +1063,7 @@
                 state.history[activityId][key] = entry;
             }
 
+            saveState();
             renderActivities();
             renderStreaks();
             updateSummary();
@@ -1043,6 +1081,7 @@
             state.history = {};
             state.selectedCategory = 'toutes';
 
+            saveState();
             renderCategoryFilters();
             renderActivities();
             renderStreaks();
@@ -1098,6 +1137,7 @@
                     state.history = data.history;
                     state.selectedCategory = 'toutes';
 
+                    saveState();
                     renderCategoryFilters();
                     renderActivities();
                     renderStreaks();
